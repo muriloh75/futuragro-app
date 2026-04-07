@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuturAgro - Consultoria</title>
+    
+    <meta name="theme-color" content="#005d52">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/005d52/ffffff?text=FA">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #005d52; 
+            --accent-color: #2196f3; 
+            --chat-bg: #e5ddd5;
+            --msg-in-bg: #fff;
+            --msg-out-bg: #dcf8c6;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--chat-bg);
+            margin: 0; display: flex; flex-direction: column; height: 100vh;
+            color: var(--text-color); -webkit-font-smoothing: antialiased;
+        }
+
+        /* TELAS */
+        #setup-screen { display: flex; flex-direction: column; background-color: #fff; height: 100vh; overflow-y: auto; padding-bottom: 90px; }
+        .setup-header { background-color: var(--primary-color); color: white; padding: 20px; text-align: center; }
+        .setup-header h1 { margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -1px; }
+        .setup-header p { margin: 5px 0 0; font-size: 14px; opacity: 0.9; }
+        
+        .input-group { padding: 15px 20px; border-bottom: 1px solid #eee; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; font-size: 14px; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .input-group input:focus { outline: 2px solid var(--primary-color); border-color: transparent; }
+
+        .fazendas-list { padding: 10px 20px; }
+        .fazenda-item { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #eee; cursor: pointer; }
+        .fazenda-info { flex: 1; }
+        .fazenda-nome { font-size: 18px; font-weight: bold; color: var(--primary-color); }
+        .fazenda-produtor { font-size: 14px; color: #666; margin-top: 2px; }
+        .btn-check { color: var(--primary-color); font-size: 24px; visibility: hidden; }
+        .fazenda-item.status-in-progress { border-left: 5px solid #ff9800; }
+        .fazenda-item.selected .btn-check { visibility: visible; }
+
+        .btn-main-action { position: fixed; bottom: 20px; left: 20px; right: 20px; background-color: var(--primary-color); color: white; border: none; padding: 15px; font-size: 18px; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; text-align: center; z-index: 100; }
+
+        #chat-screen { display: none; flex-direction: column; height: 100vh; position: relative;}
+        .header { background-color: var(--primary-color); color: white; padding: 12px 15px; display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 18px; z-index: 10; flex-shrink: 0;}
+        .btn-back-main { background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; }
+        .header-info { flex: 1; }
+        .header-fazenda { font-weight: bold; }
+        .header-produtor { font-size: 12px; opacity: 0.8; font-weight: normal; }
+        .header-actions { display: flex; gap: 8px; }
+        .btn-action-small { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 10px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .btn-action-finish { background-color: #e53935; }
+
+        .chat-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; box-sizing: border-box; }
+        
+        .item-container { display: flex; flex-direction: column; position: relative; max-width: 85%; align-self: flex-start; }
+        .item-container.status-msg-out { align-self: flex-end; }
+        .mensagem, .secao { padding: 10px; border-radius: 8px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; cursor: pointer; white-space: pre-wrap; }
+        .status-msg-in .mensagem { background-color: var(--msg-in-bg); border-top-left-radius: 0; }
+        .status-msg-out .mensagem { background-color: var(--msg-out-bg); border-top-right-radius: 0; }
+        .secao { background-color: transparent; border-bottom: 2px solid var(--primary-color); border-radius: 0; padding: 5px 0; margin-top: 15px; margin-bottom: 5px; font-weight: bold; font-size: 16px; color: var(--primary-color); align-self: center; width: 100%; text-align: center; max-width: 90%; }
+
+        .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; width: 100%; min-width: 250px; }
+        .img-grid img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: block; }
+        .img-grid img:only-child { grid-column: span 2; height: 250px; }
+
+        .controles-contextuais { position: absolute; bottom: calc(100% + 5px); right: 0; background-color: #fff; padding: 5px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); display: none; gap: 5px; z-index: 10; }
+        .controles-contextuais.active { display: flex; }
+        .controles-contextuais button { background: none; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; font-size: 12px; padding: 4px 8px; color: #333; }
+
+        /* AJUSTE DOS BOTÕES PARA CABEREM A CÂMERA E A GALERIA NA TELA DO CELULAR */
+        .input-area { background-color: #f0f0f0; padding: 10px; display: flex; gap: 8px; align-items: flex-end; z-index: 10; flex-shrink: 0;}
+        textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; font-size: 14px; resize: none; max-height: 120px; font-family: inherit; overflow-y: hidden; }
+        textarea:focus { outline: none; border-color: var(--primary-color); }
+        input[type="file"] { display: none; }
+        .btn-input-acao { background-color: var(--primary-color); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-input-acao.btn-secao { width: auto; border-radius: 15px; padding: 0 10px; font-size: 12px; font-weight: bold; }
+
+        #photo-preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); z-index: 100; flex-direction: column; padding: 20px; box-sizing: border-box; justify-content: center; }
+        #photo-preview-image { width: 100%; max-height: 60vh; object-fit: contain; margin-bottom: 30px; }
+        
+        .modal-actions { display: flex; gap: 15px; }
+        .btn-modal { flex: 1; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; }
+        .btn-modal-cancel { background-color: #fff; color: #333; }
+        .btn-modal-confirm { background-color: var(--primary-color); color: white; }
+
+        #logo-pdf-wrapper { display: none; text-align: center; margin-bottom: 30px; }
+        #logo-pdf-wrapper img { max-width: 250px; }
+        #relatorio-cabecalho { display: none; }
+
+        #loading-pdf { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; z-index: 999; flex-direction: column; justify-content: center; align-items: center; font-size: 18px; font-weight: bold; }
+        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ========================================================================= */
+        /* CSS EXCLUSIVO PARA O RELATÓRIO PDF                                        */
+        /* ========================================================================= */
+        .pdf-mode { 
+            background: white !important; 
+            padding: 40px 0 !important; 
+            margin: 0 !important;
+            text-align: center !important;
+            height: max-content !important; 
+            overflow: visible !important;
+        }
+        
+        .pdf-mode * {
+            font-family: Arial, Helvetica, sans-serif !important; 
+            letter-spacing: 0.5px !important; 
+            font-variant-ligatures: none !important; 
+            font-feature-settings: "liga" 0 !important;
+        }
+        
+        .pdf-mode #logo-pdf-wrapper { display: block !important; margin-top: 20px !important; }
+
+        .pdf-mode #relatorio-cabecalho { 
+            display: block !important; 
+            text-align: center !important; 
+            margin: 0 auto 30px auto !important; 
+            border-bottom: 2px solid #eee; 
+            padding-bottom: 20px !important; 
+            width: 90% !important; 
+        }
+        .pdf-mode #relatorio-cabecalho h1 { font-size: 26px !important; color: #333 !important; margin-bottom: 10px !important; }
+        .pdf-mode #relatorio-cabecalho p { margin: 5px 0 !important; font-size: 16px !important; color: #555; }
+        
+        .pdf-mode .item-container { align-items: center !important; margin: 0 auto 20px auto !important; width: 90% !important; }
+        .pdf-mode .mensagem { text-align: center !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; width: 100%; white-space: pre-wrap; }
+        
+        .pdf-mode .secao { 
+            text-align: center !important; 
+            border-left: none !important; 
+            border-bottom: 3px solid var(--primary-color) !important; 
+            width: 100% !important; 
+            display: block !important; 
+            margin: 40px auto 20px auto !important; 
+            font-weight: bold !important; 
+            font-size: 22px !important; 
+            padding-bottom: 5px !important; 
+            color: var(--primary-color) !important;
+        }
+        
+        .pdf-mode .texto-conteudo { 
+            display: block !important; 
+            text-align: center !important; 
+            font-size: 16px !important; 
+            margin-bottom: 15px !important; 
+            width: 100% !important; 
+            color: #333 !important; 
+        }
+
+        .pdf-mode .img-grid { 
+            display: grid !important; 
+            grid-template-columns: 1fr 1fr !important; 
+            gap: 15px !important; 
+            width: 100% !important; 
+            margin: 0 auto !important; 
+        }
+        .pdf-mode .img-grid img { 
+            width: 100% !important; 
+            height: 250px !important; 
+            object-fit: cover !important; 
+            border-radius: 8px !important;
+            display: block !important;
+        }
+        .pdf-mode .img-grid img:only-child {
+            grid-column: span 2 !important;
+            height: 350px !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading-pdf">
+        <div class="spinner"></div>
+        Gerando Relatório Único...
+    </div>
+
+    <div id="setup-screen">
+        <div class="setup-header">
+            <h1>FUTURAGRO</h1>
+            <p>Consultoria Agronômica</p>
+        </div>
+
+        <div class="input-group">
+            <label for="nomeConsultor">Consultor Técnico:</label>
+            <input type="text" id="nomeConsultor" placeholder="Seu nome completo">
+        </div>
+
+        <div class="input-group">
+            <label for="buscaFazenda">🔍 Buscar Fazenda ou Produtor:</label>
+            <input type="text" id="buscaFazenda" placeholder="Digite para filtrar a lista..." onkeyup="filtrarFazendas()">
+        </div>
+
+        <div class="fazendas-list" id="listaFazendas"></div>
+        <button class="btn-main-action" onclick="abrirMonitoramentoSelecionado()">Iniciar Monitoramento</button>
+    </div>
+
+    <div id="chat-screen">
+        <div class="header" id="chat-header">
+            <button class="btn-back-main" onclick="voltarAoMenu()">←</button>
+            <div class="header-info">
+                <div class="header-fazenda" id="headerFazendaNome">Fazenda</div>
+                <div class="header-produtor" id="headerProdutorNome">Produtor</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-action-small" onclick="gerarRelatorioPDF()">Gerar PDF</button>
+                <button class="btn-action-small btn-action-finish" onclick="finalizarMonitoramento()">Finalizar</button>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chat">
+            
+            <div id="logo-pdf-wrapper">
+                <img id="logo-pdf" src="logo_futuragro.png" alt="FuturAgro Consultoria">
+            </div>
+
+            <div id="relatorio-cabecalho">
+                <h1 id="relFazenda">Fazenda</h1>
+                <p><strong>Produtor:</strong> <span id="relProdutor"></span></p>
+                <p><strong>Consultor:</strong> <span id="relConsultor"></span></p>
+                <p><strong>Data:</strong> <span id="relData"></span></p>
+            </div>
+        </div>
+
+        <div class="input-area" id="chat-input">
+            <button class="btn-input-acao btn-secao" onclick="adicionarSecao()">+ Sessão</button>
+            
+            <label for="imagem-camera" class="btn-input-acao">📷</label>
+            <input type="file" id="imagem-camera" accept="image/*" capture="environment" onchange="abrirPrevisualizacaoFoto(this)">
+            
+            <label for="imagem-galeria" class="btn-input-acao">🖼️</label>
+            <input type="file" id="imagem-galeria" accept="image/*" onchange="abrirPrevisualizacaoFoto(this)">
+            
+            <textarea id="texto" placeholder="Digite a anotação..." rows="1" oninput="ajustarAltura(this)"></textarea>
+            
+            <button class="btn-input-acao" onclick="adicionarMensagem()">➤</button>
+        </div>
+    </div>
+
+    <div id="photo-preview-modal">
+        <img id="photo-preview-image" src="" alt="Pré-visualização">
+        <div class="modal-actions">
+            <button class="btn-modal btn-modal-cancel" onclick="cancelarEnvioFoto()">Cancelar</button>
+            <button class="btn-modal btn-modal-confirm" onclick="confirmarEnvioFoto()">Enviar Foto</button>
+        </div>
+    </div>
+
+    <script>
+        const FAZENDAS_CADASTRADAS = [
+            { id: 'altina_cardoso', nome: 'ALTINA', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'alto_serra_cardoso', nome: 'ALTO DA SERRA', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'ariranha_cardoso', nome: 'ARIRANHA', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'campo_limpo_cardoso', nome: 'CAMPO LIMPO', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'terra_nova_cardoso', nome: 'TERRA NOVA', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'tamboril_cardoso', nome: 'TAMBORIL', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'jg_cardoso', nome: 'JG', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'sao_jose_cardoso', nome: 'SÃO JOSÉ', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'bom_jesus_cardoso', nome: 'BOM JESUS', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'morro_mesa_cardoso', nome: 'MORRO DE MESA', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'rosado_cardoso', nome: 'ROSADO', produtor: 'CONDOMINIO CARDOSO' },
+            { id: 'campo_alto_saul', nome: 'CAMPO ALTO', produtor: 'SAUL MOURA' },
+            { id: 'boa_vista_saul', nome: 'BOA VISTA', produtor: 'SAUL MOURA' },
+            { id: 'mourao_saul', nome: 'MOURÃO', produtor: 'SAUL MOURA' },
+            { id: 'cachoeira_saul', nome: 'CACHOEIRA', produtor: 'SAUL MOURA' },
+            { id: 'ariranha_bg', nome: 'ARIRANHA', produtor: 'AGROPECUARIA B&G' },
+            { id: 'barro_branco_bg', nome: 'BARRO BRANCO', produtor: 'AGROPECUARIA B&G' },
+            { id: 'boa_vista_bg', nome: 'BOA VISTA', produtor: 'AGROPECUARIA B&G' },
+            { id: 'bom_jardim_bg', nome: 'BOM JARDIM', produtor: 'AGROPECUARIA B&G' },
+            { id: 'bonanza_bg', nome: 'BONANZA', produtor: 'AGROPECUARIA B&G' },
+            { id: 'mutum_bg', nome: 'MUTUM', produtor: 'AGROPECUARIA B&G' },
+            { id: 'ponte_pedra_bg', nome: 'PONTE PEDRA', produtor: 'AGROPECUARIA B&G' },
+            { id: 'bom_fim_bg', nome: 'BOM FIM', produtor: 'AGROPECUARIA B&G' },
+            { id: 'mangueiras_david', nome: 'FAZENDA DAS MANGUEIRAS', produtor: 'DAVID MICHELI' },
+            { id: 'felicidade_ricardo', nome: 'FELICIDADE', produtor: 'RICARDO QADDUR' },
+            { id: 'rancho_cbt_ricardo', nome: 'RANCHO CBT', produtor: 'RICARDO QADDUR' },
+            { id: 'santa_elza_ricardo', nome: 'SANTA ELZA', produtor: 'RICARDO QADDUR' },
+            { id: 'beira_rio_ricardo', nome: 'BEIRA RIO', produtor: 'RICARDO QADDUR' },
+            { id: 'morro_mesa_agro', nome: 'MORRO DE MESA', produtor: 'AGRO COSTA' },
+            { id: 'ariranha_sandro', nome: 'ARIRANHA', produtor: 'SANDRO MAGIONI' },
+            { id: 'santa_rita_sandro', nome: 'SANTA RITA', produtor: 'SANDRO MAGIONI' },
+            { id: 'usina_sandro', nome: 'USINA', produtor: 'SANDRO MAGIONI' },
+            { id: 'estrela_dalva_sandro', nome: 'ESTRELA DALVA', produtor: 'SANDRO MAGIONI' },
+            { id: 'ariranha_juarez', nome: 'ARIRANHA', produtor: 'JUAREZ' },
+            { id: 'agua_viva_thiago', nome: 'ÁGUA VIVA', produtor: 'THIAGO E LUCAS' }
+        ];
+
+        let fazendaSelecionadaId = null;
+        let consultorAtual = '';
+        let temporaryImageData = null;
+
+        const LS_KEY_DATA = 'futuragro_data_v7';
+        const LS_KEY_CONSULTOR = 'futuragro_consultor';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            preencherListaFazendas();
+            loadGlobalData();
+        });
+
+        function ajustarAltura(elemento) {
+            elemento.style.height = 'auto';
+            elemento.style.height = (elemento.scrollHeight) + 'px';
+            if (elemento.scrollHeight > 120) {
+                elemento.style.overflowY = 'auto';
+            } else {
+                elemento.style.overflowY = 'hidden';
+            }
+        }
+
+        function filtrarFazendas() {
+            const termo = document.getElementById('buscaFazenda').value.toLowerCase();
+            document.querySelectorAll('.fazenda-item').forEach(item => {
+                const texto = item.innerText.toLowerCase();
+                if (texto.includes(termo)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function preencherListaFazendas() {
+            const lista = document.getElementById('listaFazendas');
+            lista.innerHTML = '';
+            const appData = loadLocalData();
+
+            FAZENDAS_CADASTRADAS.forEach(fazenda => {
+                const item = document.createElement('div');
+                item.className = 'fazenda-item';
+                item.id = `fz-${fazenda.id}`;
+                item.onclick = () => selecionarFazendaNoMenu(fazenda.id);
+
+                let statusInfo = appData[fazenda.id] ? '<span style="color: #ff9800; font-size: 12px; font-weight: bold;">(Em andamento)</span>' : '';
+                if (appData[fazenda.id]) item.classList.add('status-in-progress');
+
+                item.innerHTML = `<div class="fazenda-info"><div class="fazenda-nome">${fazenda.nome} ${statusInfo}</div><div class="fazenda-produtor">${fazenda.produtor}</div></div><div class="btn-check">✓</div>`;
+                lista.appendChild(item);
+            });
+        }
+
+        function selecionarFazendaNoMenu(id) {
+            fazendaSelecionadaId = id;
+            document.querySelectorAll('.fazenda-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`fz-${id}`).classList.add('selected');
+        }
+
+        function abrirMonitoramentoSelecionado() {
+            consultorAtual = document.getElementById('nomeConsultor').value;
+            if (!consultorAtual || !fazendaSelecionadaId) { alert("Preencha seu nome e selecione uma fazenda."); return; }
+
+            localStorage.setItem(LS_KEY_CONSULTOR, consultorAtual);
+            const fazendaData = FAZENDAS_CADASTRADAS.find(f => f.id === fazendaSelecionadaId);
+            document.getElementById('headerFazendaNome').textContent = fazendaData.nome;
+            document.getElementById('headerProdutorNome').textContent = fazendaData.produtor;
+            document.getElementById('relFazenda').textContent = fazendaData.nome;
+            document.getElementById('relProdutor').textContent = fazendaData.produtor;
+            document.getElementById('relConsultor').textContent = consultorAtual;
+            
+            const hoje = new Date();
+            document.getElementById('relData').textContent = hoje.toLocaleDateString('pt-BR');
+
+            loadFazendaData(fazendaSelecionadaId);
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'flex';
+        }
+
+        function voltarAoMenu() {
+            fazendaSelecionadaId = null;
+            limparChat();
+            preencherListaFazendas();
+            document.getElementById('setup-screen').style.display = 'flex';
+            document.getElementById('chat-screen').style.display = 'none';
+        }
+
+        function finalizarMonitoramento() {
+            if (confirm("Deseja FINALIZAR este monitoramento? (Ele será apagado após gerar o PDF).")) {
+                gerarRelatorioPDF(true);
+            }
+        }
+
+        function gerarRelatorioPDF(deveLimpar = false) {
+            document.getElementById('loading-pdf').style.display = 'flex';
+            
+            const chat = document.getElementById('chat');
+            const fazendaData = FAZENDAS_CADASTRADAS.find(f => f.id === fazendaSelecionadaId);
+            
+            const hoje = new Date();
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const ano = String(hoje.getFullYear()).slice(-2);
+            const nomeArquivo = `${fazendaData.nome} - ${dia}_${mes}_${ano}.pdf`;
+
+            window.scrollTo(0, 0);
+            chat.scrollTop = 0;
+
+            chat.classList.add('pdf-mode');
+            document.querySelectorAll('.controles-contextuais.active').forEach(el => el.classList.remove('active'));
+
+            setTimeout(() => {
+                const alturaExata = chat.scrollHeight + 150;
+                const larguraIdeal = 800;
+
+                const opcoes = {
+                    margin:       0, 
+                    filename:     nomeArquivo,
+                    image:        { type: 'jpeg', quality: 0.95 },
+                    html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: 0, windowWidth: larguraIdeal, windowHeight: alturaExata },
+                    jsPDF:        { unit: 'px', format: [larguraIdeal, alturaExata], orientation: 'portrait', hotfixes: ["px_scaling"] }
+                };
+
+                html2pdf().set(opcoes).from(chat).save().then(() => {
+                    chat.classList.remove('pdf-mode');
+                    document.getElementById('loading-pdf').style.display = 'none';
+                    if (deveLimpar) {
+                        deleteFazendaData(fazendaSelecionadaId);
+                        voltarAoMenu();
+                    }
+                }).catch(err => {
+                    alert("Erro ao gerar PDF: " + err);
+                    chat.classList.remove('pdf-mode');
+                    document.getElementById('loading-pdf').style.display = 'none';
+                });
+            }, 500);
+        }
+
+        function adicionarItemAoChat(itemData, salvar = true) {
+            const chat = document.getElementById('chat');
+            const container = document.createElement('div');
+            container.className = `item-container ${itemData.status || 'status-msg-in'}`;
+            container.dataset.itemId = itemData.id || Date.now();
+            container.onclick = (e) => toggleContextControls(container, e);
+
+            let elementoTexto;
+            if (itemData.type === 'secao') {
+                container.classList.add('item-secao');
+                const divSecao = document.createElement('div');
+                divSecao.className = 'secao';
+                elementoTexto = document.createElement('span');
+                elementoTexto.className = 'texto-conteudo';
+                elementoTexto.textContent = itemData.texto.toUpperCase();
+                divSecao.appendChild(elementoTexto);
+                container.appendChild(divSecao);
+            } else {
+                const divMensagem = document.createElement('div');
+                divMensagem.className = 'mensagem';
+                
+                if (itemData.texto) {
+                    elementoTexto = document.createElement('span');
+                    elementoTexto.className = 'texto-conteudo';
+                    elementoTexto.textContent = itemData.texto;
+                    divMensagem.appendChild(elementoTexto);
+                }
+                
+                if (itemData.images && itemData.images.length > 0) {
+                    const divGrid = document.createElement('div');
+                    divGrid.className = 'img-grid';
+                    itemData.images.forEach(imgData => {
+                        const img = document.createElement('img');
+                        img.src = imgData;
+                        divGrid.appendChild(img);
+                    });
+                    divMensagem.appendChild(divGrid);
+                }
+                container.appendChild(divMensagem);
+            }
+
+            container.appendChild(criarControlesContextuais(container, elementoTexto));
+            chat.appendChild(container);
+            rolarParaBaixo();
+            if (salvar) saveFazendaData();
+        }
+
+        function adicionarMensagem() {
+            const textoInput = document.getElementById('texto');
+            const texto = textoInput.value.trim();
+            if (texto === '' && temporaryImageData === null) return;
+
+            if (texto !== '') {
+                adicionarItemAoChat({ 
+                    id: Date.now(), type: 'mensagem', status: 'status-msg-out', 
+                    texto: texto, images: [] 
+                });
+            }
+
+            if (temporaryImageData) {
+                const chat = document.getElementById('chat');
+                const ultimosItens = chat.querySelectorAll('.item-container:not(#relatorio-cabecalho):not(#logo-pdf-wrapper)');
+                const ultimoItem = ultimosItens.length > 0 ? ultimosItens[ultimosItens.length - 1] : null;
+
+                const ultimoTinhaTexto = ultimoItem ? ultimoItem.querySelector('.texto-conteudo') !== null : false;
+                const ultimoTinhaGrid = ultimoItem ? ultimoItem.querySelector('.img-grid') !== null : false;
+
+                if (ultimoItem && !ultimoItem.classList.contains('item-secao') && ultimoTinhaGrid && !ultimoTinhaTexto) {
+                    const divMensagem = ultimoItem.querySelector('.mensagem');
+                    let divGrid = divMensagem.querySelector('.img-grid');
+                    
+                    const img = document.createElement('img');
+                    img.src = temporaryImageData;
+                    divGrid.appendChild(img);
+                    
+                    saveFazendaData();
+                    rolarParaBaixo();
+                } else {
+                    adicionarItemAoChat({ 
+                        id: Date.now() + 1, type: 'mensagem', status: 'status-msg-out', 
+                        texto: '', images: [temporaryImageData] 
+                    });
+                }
+            }
+
+            textoInput.value = '';
+            textoInput.style.height = 'auto'; 
+            temporaryImageData = null;
+        }
+
+        function adicionarSecao() {
+            const nomeSecao = prompt("Nome da Nova Sessão:");
+            if (!nomeSecao) return;
+            adicionarItemAoChat({ id: Date.now(), type: 'secao', texto: nomeSecao });
+        }
+
+        function abrirPrevisualizacaoFoto(input) {
+            if (input.files && input.files[0]) {
+                const leitor = new FileReader();
+                leitor.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800; 
+                        let width = img.width; let height = img.height;
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        temporaryImageData = canvas.toDataURL('image/jpeg', 0.6); 
+                        
+                        document.getElementById('photo-preview-image').src = temporaryImageData;
+                        document.getElementById('photo-preview-modal').style.display = 'flex';
+                    };
+                    img.src = e.target.result;
+                }
+                leitor.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function confirmarEnvioFoto() { adicionarMensagem(); fecharModalFoto(); }
+        function cancelarEnvioFoto() { temporaryImageData = null; fecharModalFoto(); }
+        function fecharModalFoto() {
+            document.getElementById('photo-preview-modal').style.display = 'none';
+            
+            // LIMPA OS DOIS BOTÕES APÓS O USO
+            document.getElementById('imagem-camera').value = '';
+            document.getElementById('imagem-galeria').value = '';
+            
+            document.getElementById('photo-preview-image').src = '';
+        }
+
+        function toggleContextControls(container, e) {
+            e.stopPropagation();
+            document.querySelectorAll('.controles-contextuais.active').forEach(el => {
+                if(el !== container.querySelector('.controles-contextuais')) el.classList.remove('active');
+            });
+            container.querySelector('.controles-contextuais').classList.toggle('active');
+        }
+
+        document.getElementById('chat').onclick = () => { document.querySelectorAll('.controles-contextuais.active').forEach(el => el.classList.remove('active')); };
+
+        function criarControlesContextuais(container, elementoTexto) {
+            const controles = document.createElement('div');
+            controles.className = 'controles-contextuais';
+            const btnSubir = document.createElement('button'); btnSubir.textContent = '⬆️';
+            btnSubir.onclick = (e) => { e.stopPropagation(); moverElemento(container, -1); };
+            const btnDescer = document.createElement('button'); btnDescer.textContent = '⬇️';
+            btnDescer.onclick = (e) => { e.stopPropagation(); moverElemento(container, 1); };
+            const btnExcluir = document.createElement('button'); btnExcluir.textContent = '❌';
+            btnExcluir.onclick = (e) => { e.stopPropagation(); if(confirm("Deseja excluir?")) { container.remove(); saveFazendaData(); } };
+            controles.appendChild(btnSubir); controles.appendChild(btnDescer); controles.appendChild(btnExcluir);
+            if (elementoTexto) {
+                const btnEditar = document.createElement('button'); btnEditar.textContent = '✏️';
+                btnEditar.onclick = (e) => { e.stopPropagation(); editarTexto(elementoTexto); };
+                controles.appendChild(btnEditar);
+            }
+            return controles;
+        }
+
+        function editarTexto(elementoTexto) {
+            const novoTexto = prompt("Edite o texto:", elementoTexto.textContent);
+            if (novoTexto !== null) { elementoTexto.textContent = novoTexto; saveFazendaData(); }
+        }
+
+        function moverElemento(elemento, direcao) {
+            const pai = elemento.parentNode;
+            if (direcao === -1 && elemento.previousElementSibling && elemento.previousElementSibling.id !== 'relatorio-cabecalho' && elemento.previousElementSibling.id !== 'logo-pdf-wrapper') {
+                pai.insertBefore(elemento, elemento.previousElementSibling); saveFazendaData();
+            } else if (direcao === 1 && elemento.nextElementSibling) {
+                pai.insertBefore(elemento.nextElementSibling, elemento); saveFazendaData();
+            }
+        }
+
+        function loadGlobalData() {
+            consultorAtual = localStorage.getItem(LS_KEY_CONSULTOR) || '';
+            document.getElementById('nomeConsultor').value = consultorAtual;
+        }
+        function loadLocalData() { const raw = localStorage.getItem(LS_KEY_DATA); return raw ? JSON.parse(raw) : {}; }
+        function saveFazendaData() {
+            if (!fazendaSelecionadaId) return;
+            const chatItems = [];
+            document.getElementById('chat').querySelectorAll('.item-container').forEach(el => {
+                const item = {
+                    id: el.dataset.itemId,
+                    type: el.classList.contains('item-secao') ? 'secao' : 'mensagem',
+                    status: el.classList.contains('status-msg-out') ? 'status-msg-out' : 'status-msg-in',
+                    texto: el.querySelector('.texto-conteudo') ? el.querySelector('.texto-conteudo').textContent : '',
+                    images: []
+                };
+                
+                el.querySelectorAll('.img-grid img').forEach(img => { 
+                    item.images.push(img.src); 
+                });
+                chatItems.push(item);
+            });
+            const appData = loadLocalData();
+            appData[fazendaSelecionadaId] = chatItems;
+            try { localStorage.setItem(LS_KEY_DATA, JSON.stringify(appData)); } catch (e) { alert("Memória cheia! Gere o relatório."); }
+        }
+        function loadFazendaData(id) { limparChat(); const appData = loadLocalData(); if (appData[id]) { appData[id].forEach(itemData => adicionarItemAoChat(itemData, false)); } }
+        function deleteFazendaData(id) { const appData = loadLocalData(); if (appData[id]) { delete appData[id]; localStorage.setItem(LS_KEY_DATA, JSON.stringify(appData)); } }
+        function rolarParaBaixo() { const chat = document.getElementById('chat'); chat.scrollTop = chat.scrollHeight; }
+        
+        function limparChat() { 
+            const logo = document.getElementById('logo-pdf-wrapper');
+            const cabecalho = document.getElementById('relatorio-cabecalho'); 
+            document.getElementById('chat').innerHTML = ''; 
+            document.getElementById('chat').appendChild(logo);
+            document.getElementById('chat').appendChild(cabecalho); 
+        }
+    </script>
+</body>
+</html>
