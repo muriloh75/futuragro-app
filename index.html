@@ -72,8 +72,20 @@
         .secao { background-color: transparent; border-bottom: 2px solid var(--primary-color); border-radius: 0; padding: 5px 0; margin-top: 15px; margin-bottom: 5px; font-weight: bold; font-size: 16px; color: var(--primary-color); align-self: center; width: 100%; text-align: center; max-width: 90%; }
 
         .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; width: 100%; min-width: 250px; }
-        .img-grid img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: block; }
-        .img-grid img:only-child { grid-column: span 2; height: 250px; }
+        /* Adicionado wrapper individual da imagem para comportar o botão X */
+        .img-wrapper { position: relative; width: 100%; height: 180px; }
+        .img-wrapper img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: block; }
+        .img-wrapper:only-child { grid-column: span 2; height: 250px; }
+        
+        /* Botão apagar imagem única */
+        .btn-delete-img {
+            position: absolute; top: 5px; right: 5px;
+            background: rgba(255, 0, 0, 0.8); color: white;
+            border: none; border-radius: 50%; width: 24px; height: 24px;
+            font-size: 12px; font-weight: bold; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 5;
+        }
 
         .controles-contextuais { position: absolute; bottom: calc(100% + 5px); right: 0; background-color: #fff; padding: 5px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); display: none; gap: 5px; z-index: 10; }
         .controles-contextuais.active { display: flex; }
@@ -109,26 +121,35 @@
         /* ========================================================================= */
         /* CSS EXCLUSIVO PARA O RELATÓRIO PDF                                        */
         /* ========================================================================= */
-        .pdf-mode { background: white !important; padding: 40px 0 !important; margin: 0 !important; text-align: center !important; height: max-content !important; overflow: visible !important; }
+        .pdf-mode { background: white !important; padding: 40px 0 !important; margin: 0 !important; height: max-content !important; overflow: visible !important; }
         .pdf-mode * { font-family: Arial, Helvetica, sans-serif !important; letter-spacing: 0.5px !important; font-variant-ligatures: none !important; font-feature-settings: "liga" 0 !important; }
-        .pdf-mode #logo-pdf-wrapper { display: block !important; margin-top: 20px !important; }
+        .pdf-mode #logo-pdf-wrapper { display: block !important; margin-top: 20px !important; text-align: center !important; }
         .pdf-mode #relatorio-cabecalho { display: block !important; text-align: center !important; margin: 0 auto 30px auto !important; border-bottom: 2px solid #eee; padding-bottom: 20px !important; width: 90% !important; }
         .pdf-mode #relatorio-cabecalho h1 { font-size: 26px !important; color: #333 !important; margin-bottom: 10px !important; }
         .pdf-mode #relatorio-cabecalho p { margin: 5px 0 !important; font-size: 16px !important; color: #555; }
-        .pdf-mode .item-container { align-items: center !important; margin: 0 auto 20px auto !important; width: 90% !important; }
-        .pdf-mode .mensagem { text-align: center !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; width: 100%; white-space: pre-wrap; }
-        .pdf-mode .secao { text-align: center !important; border-left: none !important; border-bottom: 3px solid var(--primary-color) !important; width: 100% !important; display: block !important; margin: 40px auto 20px auto !important; font-weight: bold !important; font-size: 22px !important; padding-bottom: 5px !important; color: var(--primary-color) !important; }
-        .pdf-mode .texto-conteudo { display: block !important; text-align: center !important; font-size: 16px !important; margin-bottom: 15px !important; width: 100% !important; color: #333 !important; }
+        
+        .pdf-mode .item-container { margin: 0 auto 20px auto !important; width: 90% !important; align-items: flex-start !important; }
+        
+        /* Ajuste do Texto à ESQUERDA no PDF */
+        .pdf-mode .mensagem { text-align: left !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; width: 100%; white-space: pre-wrap; }
+        .pdf-mode .texto-conteudo { display: block !important; text-align: left !important; font-size: 16px !important; margin-bottom: 15px !important; width: 100% !important; color: #333 !important; }
+        
+        /* Títulos continuam centralizados */
+        .pdf-mode .secao { text-align: center !important; align-self: center !important; border-left: none !important; border-bottom: 3px solid var(--primary-color) !important; width: 100% !important; display: block !important; margin: 40px auto 20px auto !important; font-weight: bold !important; font-size: 22px !important; padding-bottom: 5px !important; color: var(--primary-color) !important; }
+        
+        /* Imagens continuam centralizadas e não mostram o botão de apagar no PDF */
         .pdf-mode .img-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 15px !important; width: 100% !important; margin: 0 auto !important; }
-        .pdf-mode .img-grid img { width: 100% !important; height: 250px !important; object-fit: cover !important; border-radius: 8px !important; display: block !important; }
-        .pdf-mode .img-grid img:only-child { grid-column: span 2 !important; height: 350px !important; }
+        .pdf-mode .img-wrapper { width: 100% !important; height: 250px !important; }
+        .pdf-mode .img-wrapper img { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 8px !important; display: block !important; }
+        .pdf-mode .img-wrapper:only-child { grid-column: span 2 !important; height: 350px !important; }
+        .pdf-mode .btn-delete-img { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="loading-pdf">
         <div class="spinner"></div>
-        Gerando Relatório Único...
+        <span id="loading-text">Gerando Relatório Único...</span>
     </div>
 
     <div id="setup-screen">
@@ -185,7 +206,7 @@
             <input type="file" id="imagem-camera" accept="image/*" capture="environment" onchange="abrirPrevisualizacaoFoto(this)">
             
             <label for="imagem-galeria" class="btn-input-acao">🖼️</label>
-            <input type="file" id="imagem-galeria" accept="image/*" onchange="abrirPrevisualizacaoFoto(this)">
+            <input type="file" id="imagem-galeria" accept="image/*" multiple onchange="processarFotosGaleria(this)">
             
             <textarea id="texto" placeholder="Digite a anotação..." rows="1" oninput="ajustarAltura(this)"></textarea>
             
@@ -259,12 +280,12 @@
         let fazendaSelecionadaId = null;
         let consultorAtual = '';
         let temporaryImageData = null;
-        let currentEditingElement = null; // Guarda o texto que está sendo editado
+        let currentEditingElement = null;
 
         const LS_KEY_CONSULTOR = 'futuragro_consultor';
 
         // =========================================================================
-        // NOVO MOTOR DE BANCO DE DADOS (INDEXED DB) PARA MEMÓRIA INFINITA
+        // MOTOR DE BANCO DE DADOS (INDEXED DB)
         // =========================================================================
         const dbName = 'FuturAgroDB';
         const storeName = 'relatorios';
@@ -323,7 +344,6 @@
                 tx.onerror = () => reject();
             });
         }
-        // =========================================================================
 
         document.addEventListener('DOMContentLoaded', () => {
             preencherListaFazendas();
@@ -357,7 +377,6 @@
             const lista = document.getElementById('listaFazendas');
             lista.innerHTML = '';
             
-            // Puxa as fazendas salvas no banco infinito para botar a linha laranja
             const fazendasComDados = await getAllFazendasWithData();
 
             FAZENDAS_CADASTRADAS.forEach(fazenda => {
@@ -399,6 +418,7 @@
             await loadFazendaData(fazendaSelecionadaId);
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
+            rolarParaBaixo();
         }
 
         function voltarAoMenu() {
@@ -416,6 +436,7 @@
         }
 
         function gerarRelatorioPDF(deveLimpar = false) {
+            document.getElementById('loading-text').textContent = 'Gerando Relatório Único...';
             document.getElementById('loading-pdf').style.display = 'flex';
             
             const chat = document.getElementById('chat');
@@ -460,6 +481,78 @@
             }, 500);
         }
 
+        // =========================================================================
+        // PROCESSAMENTO DE MÚLTIPLAS FOTOS DA GALERIA
+        // =========================================================================
+        function lerECortarImagem(file) {
+            return new Promise((resolve) => {
+                const leitor = new FileReader();
+                leitor.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const targetWidth = 800; 
+                        const targetHeight = 600; 
+                        canvas.width = targetWidth; 
+                        canvas.height = targetHeight;
+                        const ctx = canvas.getContext('2d');
+
+                        const imgRatio = img.width / img.height;
+                        const targetRatio = targetWidth / targetHeight;
+                        let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
+
+                        if (imgRatio > targetRatio) {
+                            sourceWidth = img.height * targetRatio;
+                            sourceX = (img.width - sourceWidth) / 2;
+                        } else {
+                            sourceHeight = img.width / targetRatio;
+                            sourceY = (img.height - sourceHeight) / 2;
+                        }
+
+                        ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+                    };
+                    img.src = e.target.result;
+                };
+                leitor.readAsDataURL(file);
+            });
+        }
+
+        async function processarFotosGaleria(input) {
+            if (!input.files || input.files.length === 0) return;
+            const files = Array.from(input.files);
+            const croppedImages = [];
+
+            // Mostra a tela de carregamento para não travar o celular
+            document.getElementById('loading-text').textContent = 'Processando imagens...';
+            document.getElementById('loading-pdf').style.display = 'flex';
+
+            for (let file of files) {
+                const dataUrl = await lerECortarImagem(file);
+                if (dataUrl) croppedImages.push(dataUrl);
+            }
+
+            document.getElementById('loading-pdf').style.display = 'none';
+            input.value = ''; // Limpa o input para poder selecionar as mesmas fotos novamente
+
+            if (croppedImages.length > 0) {
+                const textoInput = document.getElementById('texto');
+                const texto = textoInput.value.trim();
+                
+                adicionarItemAoChat({ 
+                    id: Date.now(), 
+                    type: 'mensagem', 
+                    status: 'status-msg-out', 
+                    texto: texto, 
+                    images: croppedImages 
+                });
+                
+                textoInput.value = '';
+                textoInput.style.height = 'auto';
+            }
+        }
+        // =========================================================================
+
         function adicionarItemAoChat(itemData, salvar = true) {
             const chat = document.getElementById('chat');
             const container = document.createElement('div');
@@ -492,9 +585,20 @@
                     const divGrid = document.createElement('div');
                     divGrid.className = 'img-grid';
                     itemData.images.forEach(imgData => {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'img-wrapper';
+
                         const img = document.createElement('img');
                         img.src = imgData;
-                        divGrid.appendChild(img);
+
+                        const btnDel = document.createElement('button');
+                        btnDel.className = 'btn-delete-img';
+                        btnDel.textContent = 'X';
+                        btnDel.onclick = (e) => removerImagem(btnDel, e);
+
+                        wrapper.appendChild(img);
+                        wrapper.appendChild(btnDel);
+                        divGrid.appendChild(wrapper);
                     });
                     divMensagem.appendChild(divGrid);
                 }
@@ -505,6 +609,29 @@
             chat.appendChild(container);
             rolarParaBaixo();
             if (salvar) saveFazendaData();
+        }
+
+        // FUNÇÃO DE REMOVER IMAGEM INDIVIDUAL
+        function removerImagem(btn, e) {
+            e.stopPropagation(); // Evita abrir o menu geral
+            if (!confirm("Deseja apagar esta foto?")) return;
+            
+            const wrapper = btn.parentNode;
+            const grid = wrapper.parentNode;
+            const itemContainer = grid.closest('.item-container');
+            
+            wrapper.remove();
+            
+            // Se a grade ficar vazia, apaga a grade
+            if (grid.children.length === 0) {
+                grid.remove();
+                // Se a mensagem não tem texto nenhum, apaga o balão inteiro
+                const textoEl = itemContainer.querySelector('.texto-conteudo');
+                if (!textoEl || textoEl.textContent.trim() === '') {
+                    itemContainer.remove();
+                }
+            }
+            saveFazendaData();
         }
 
         function adicionarMensagem() {
@@ -519,6 +646,7 @@
                 });
             }
 
+            // Para foto isolada tirada via CÂMERA
             if (temporaryImageData) {
                 const chat = document.getElementById('chat');
                 const ultimosItens = chat.querySelectorAll('.item-container:not(#relatorio-cabecalho):not(#logo-pdf-wrapper)');
@@ -527,13 +655,25 @@
                 const ultimoTinhaTexto = ultimoItem ? ultimoItem.querySelector('.texto-conteudo') !== null : false;
                 const ultimoTinhaGrid = ultimoItem ? ultimoItem.querySelector('.img-grid') !== null : false;
 
+                // Anexar foto à grade anterior se ela existir e não tiver texto solto atrapalhando
                 if (ultimoItem && !ultimoItem.classList.contains('item-secao') && ultimoTinhaGrid && !ultimoTinhaTexto) {
                     const divMensagem = ultimoItem.querySelector('.mensagem');
                     let divGrid = divMensagem.querySelector('.img-grid');
                     
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'img-wrapper';
+
                     const img = document.createElement('img');
                     img.src = temporaryImageData;
-                    divGrid.appendChild(img);
+
+                    const btnDel = document.createElement('button');
+                    btnDel.className = 'btn-delete-img';
+                    btnDel.textContent = 'X';
+                    btnDel.onclick = (e) => removerImagem(btnDel, e);
+
+                    wrapper.appendChild(img);
+                    wrapper.appendChild(btnDel);
+                    divGrid.appendChild(wrapper);
                     
                     saveFazendaData();
                     rolarParaBaixo();
@@ -556,43 +696,14 @@
             adicionarItemAoChat({ id: Date.now(), type: 'secao', texto: nomeSecao });
         }
 
+        // Câmera Individual
         function abrirPrevisualizacaoFoto(input) {
             if (input.files && input.files[0]) {
-                const leitor = new FileReader();
-                leitor.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        
-                        // CORTE INTELIGENTE (CENTER CROP EM FORMATO 4:3) 
-                        // Para as fotos verticais ficarem perfeitas e não esticarem no PDF
-                        const targetWidth = 800; 
-                        const targetHeight = 600; 
-                        canvas.width = targetWidth; 
-                        canvas.height = targetHeight;
-                        const ctx = canvas.getContext('2d');
-
-                        const imgRatio = img.width / img.height;
-                        const targetRatio = targetWidth / targetHeight;
-                        let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
-
-                        if (imgRatio > targetRatio) {
-                            sourceWidth = img.height * targetRatio;
-                            sourceX = (img.width - sourceWidth) / 2;
-                        } else {
-                            sourceHeight = img.width / targetRatio;
-                            sourceY = (img.height - sourceHeight) / 2;
-                        }
-
-                        ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
-                        temporaryImageData = canvas.toDataURL('image/jpeg', 0.7); 
-                        
-                        document.getElementById('photo-preview-image').src = temporaryImageData;
-                        document.getElementById('photo-preview-modal').style.display = 'flex';
-                    };
-                    img.src = e.target.result;
-                }
-                leitor.readAsDataURL(input.files[0]);
+                lerECortarImagem(input.files[0]).then(dataUrl => {
+                    temporaryImageData = dataUrl;
+                    document.getElementById('photo-preview-image').src = temporaryImageData;
+                    document.getElementById('photo-preview-modal').style.display = 'flex';
+                });
             }
         }
 
@@ -601,7 +712,6 @@
         function fecharModalFoto() {
             document.getElementById('photo-preview-modal').style.display = 'none';
             document.getElementById('imagem-camera').value = '';
-            document.getElementById('imagem-galeria').value = '';
             document.getElementById('photo-preview-image').src = '';
         }
 
@@ -623,10 +733,9 @@
             const btnDescer = document.createElement('button'); btnDescer.textContent = '⬇️';
             btnDescer.onclick = (e) => { e.stopPropagation(); moverElemento(container, 1); };
             const btnExcluir = document.createElement('button'); btnExcluir.textContent = '❌';
-            btnExcluir.onclick = (e) => { e.stopPropagation(); if(confirm("Deseja excluir?")) { container.remove(); saveFazendaData(); } };
+            btnExcluir.onclick = (e) => { e.stopPropagation(); if(confirm("Deseja excluir a mensagem inteira?")) { container.remove(); saveFazendaData(); } };
             controles.appendChild(btnSubir); controles.appendChild(btnDescer); controles.appendChild(btnExcluir);
             
-            // NOVA EDIÇÃO DE TEXTO
             if (elementoTexto) {
                 const btnEditar = document.createElement('button'); btnEditar.textContent = '✏️';
                 btnEditar.onclick = (e) => { e.stopPropagation(); editarTexto(elementoTexto); };
@@ -635,7 +744,6 @@
             return controles;
         }
 
-        // FUNÇÕES DO NOVO MODAL DE EDIÇÃO
         function editarTexto(elementoTexto) {
             currentEditingElement = elementoTexto;
             const textarea = document.getElementById('edit-texto-input');
@@ -677,6 +785,7 @@
                     images: []
                 };
                 
+                // Pega as imagens originais que estão dentro da grade agora
                 el.querySelectorAll('.img-grid img').forEach(img => { 
                     item.images.push(img.src); 
                 });
@@ -684,7 +793,6 @@
             });
             
             try { 
-                // Salva no banco de dados infinito do celular
                 await saveLocalData(fazendaSelecionadaId, chatItems); 
             } catch (e) { 
                 alert("Erro ao salvar no banco de dados do celular."); 
