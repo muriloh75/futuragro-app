@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=850, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" id="viewport-meta" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FuturAgro - Recomendação</title>
     
     <meta name="theme-color" content="#005d52">
@@ -21,6 +21,7 @@
             --border-color: #ccc;
         }
 
+        /* REMOVIDO min-width: 850px DO BODY PARA NÃO ENCOLHER A TELA INICIAL NO CELULAR */
         body {
             font-family: Arial, Helvetica, sans-serif;
             background-color: var(--bg-color);
@@ -30,7 +31,7 @@
             flex-direction: column;
             align-items: center;
             color: var(--text-color);
-            min-width: 850px;
+            width: 100%;
         }
 
         /* ========================================================= */
@@ -83,6 +84,7 @@
         #rec-screen {
             display: none;
             width: 100%;
+            min-width: 850px; /* GARANTE A LARGURA EXCLUSIVAMENTE QUANDO ESTA TELA ESTÁ ABERTA */
             flex-direction: column;
             align-items: center;
             padding: 40px 20px;
@@ -393,7 +395,7 @@
         });
       }
     </script>
-    </head>
+</head>
 <body>
 
     <div id="loading-pdf">
@@ -438,9 +440,9 @@
         <div class="folha-a4" id="folha-relatorio">
             
             <div class="cabecalho">
-    <img src="logo_futuragro.png" alt="FuturAgro Consultoria">
-    <h1>Recomendação</h1>
-</div>
+                <img src="logo_futuragro.png" alt="FuturAgro Consultoria">
+                <h1>Recomendação</h1>
+            </div>
 
             <div class="linha">
                 <div class="campo" style="flex: 2;">
@@ -666,12 +668,18 @@
             document.getElementById('fazenda').value = fazendaData.nome;
             document.getElementById('nomeConsultorAssinatura').value = consultorAtual;
 
+            // ALTERA O VIEWPORT AUTOMATICAMENTE PARA AJUSTAR A FOLHA A4 NA TELA
+            document.getElementById('viewport-meta').setAttribute('content', 'width=850, maximum-scale=1.0, user-scalable=no');
+
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('rec-screen').style.display = 'flex';
             window.scrollTo(0, 0);
         }
 
         function voltarAoMenu() {
+            // RETORNA O VIEWPORT PARA O PADRÃO MÓVEL IDENTICO AO MONITORAMENTO
+            document.getElementById('viewport-meta').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+
             document.getElementById('rec-screen').style.display = 'none';
             document.getElementById('setup-screen').style.display = 'flex';
             window.scrollTo(0, 0);
