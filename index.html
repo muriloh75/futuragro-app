@@ -223,10 +223,15 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
 
-        // 1. GARANTE A PERSISTÊNCIA LOCAL (MANTÉM LOGADO)
+        // 1. LIMPA A URL DE PARÂMETROS ANTIGOS DO FIREBASE PARA EVITAR O ERRO "INVALID ACTION"
+        if (window.location.search.includes('apiKey=') || window.location.search.includes('mode=')) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        // 2. GARANTE A PERSISTÊNCIA LOCAL (MANTÉM LOGADO)
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        // 2. MONITORAMENTO DE SESSÃO (AUTOMÁTICO)
+        // 3. MONITORAMENTO DE SESSÃO (AUTOMÁTICO)
         auth.onAuthStateChanged(user => {
             const loadingScreen = document.getElementById('loading-auth');
             const loginScreen = document.getElementById('login-screen');
@@ -252,18 +257,21 @@
             }
         });
 
-        // 3. FUNÇÃO DE LOGIN VIA POPUP (LUGAR CORRETO E SEM ERRO DE AÇÃO INVÁLIDA)
+        // 4. FUNÇÃO DE LOGIN VIA POPUP LIMPA E SEGURA
         function fazerLoginGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
             
             auth.signInWithPopup(provider).catch(error => {
                 console.error("Erro no login:", error);
-                alert("Erro ao entrar com o Google: " + error.message);
+                // Ignora se o usuário fechou o pop-up por vontade própria
+                if (error.code !== 'auth/popup-closed-by-user') {
+                    alert("Erro ao entrar com o Google: " + error.message);
+                }
             });
         }
 
-        // 4. LOGOFF
+        // 5. LOGOFF
         function fazerLogout() {
             if (confirm("Deseja realmente sair da sua conta?")) {
                 auth.signOut().then(() => {
