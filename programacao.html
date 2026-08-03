@@ -10,11 +10,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/005d52/ffffff?text=FA">
     
+    <!-- CDNs OFICIAIS DO FIREBASE -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
+    <!-- CDN DO PDF.JS PARA CONVERSÃO OFFLINE DE PDF EM IMAGEM -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>
         if (typeof pdfjsLib !== 'undefined') {
@@ -48,23 +50,24 @@
         .screen-container { display: none; flex-direction: column; width: 100%; min-height: 100vh; }
         .screen-container.active { display: flex; }
 
-        /* HEADERS SEGUROS PARA CELULAR (EVITA O NOTCH SUPERIOR) */
+        /* HEADERS SEGUROS PARA CELULAR */
         .setup-header, .header-seguro { 
             background-color: var(--primary-color); 
             color: white; 
             padding: max(35px, env(safe-area-inset-top)) 20px 15px 20px; 
             display: flex; 
+            flex-direction: row;
             align-items: center; 
             justify-content: space-between; 
             position: sticky;
             top: 0;
+            width: 100%;
             z-index: 1000;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
         .setup-header h1 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -1px; }
         .setup-header p { margin: 2px 0 0; font-size: 13px; opacity: 0.9; }
 
-        /* BOTÃO DE VOLTAR COM ÁREA DE TOQUE GRANDE */
         .btn-voltar-topo {
             background: none;
             border: none;
@@ -90,7 +93,7 @@
             background-color: #2196f3;
             color: white;
             border: none;
-            padding: 15px 20px;
+            padding: 14px 20px;
             font-size: 15px;
             font-weight: bold;
             border-radius: 8px;
@@ -221,8 +224,48 @@
             align-items: center;
             justify-content: center;
         }
+
+        /* ========================================================= */
+        /* TELA DO MÓDULO (CABECALHO EM CIMA / CONTEÚDO EMBAIXO)    */
+        /* ========================================================= */
+        #modal-pdf {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--bg-color);
+            z-index: 10000;
+            flex-direction: column; /* GARANTE QUE NÃO VAI DIVIDIR EM COLUNAS LATERAIS */
+            overflow: hidden;
+        }
+        .header-pdf-top {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+            padding: max(35px, env(safe-area-inset-top)) 20px 15px 20px;
+            display: flex;
+            flex-direction: row; /* FIXA O CABEÇALHO HORIZONTALMENTE */
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            flex-shrink: 0;
+        }
+        #container-imagens-pdf {
+            width: 100%;
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 15px 80px 15px;
+            display: flex;
+            flex-direction: column; /* IMAGENS UMA ABAIXO DA OUTRA */
+            align-items: center;
+            gap: 20px;
+            background: var(--bg-color);
+        }
     </style>
 
+    <!-- SERVICE WORKER PARA MODO OFFLINE -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -238,6 +281,7 @@
     <div id="loading">AGUARDE...</div>
     <div id="toast">Aviso aqui</div>
 
+    <!-- MODAL DE ZOOM EM TELA CHEIA -->
     <div id="modal-zoom">
         <button class="btn-fechar-zoom" onclick="fecharZoom()">✖</button>
         <div class="zoom-container-internal" id="zoom-viewport">
@@ -250,6 +294,9 @@
         </div>
     </div>
 
+    <!-- =========================================================== -->
+    <!-- TELA 1: SELEÇÃO DE FAZENDA E CLIENTE                        -->
+    <!-- =========================================================== -->
     <div id="setup-screen" class="screen-container active">
         <div class="setup-header">
             <a href="index.html" class="btn-voltar-topo" title="Voltar ao Início">←</a>
@@ -270,6 +317,7 @@
             <input type="text" id="buscaFazenda" placeholder="Digite para filtrar a lista..." onkeyup="filtrarFazendas()">
         </div>
 
+        <!-- BOTÃO PARA BAIXAR TODOS OS DADOS DA NUVEM -->
         <button type="button" class="btn-sync-all" onclick="baixarDadosSafrasTodosClientes()">
             ☁️ Baixar dados de safras dos clientes (Offline)
         </button>
@@ -278,6 +326,9 @@
         <button class="btn-main-action" onclick="avancarParaListaSafras()">Acessar Safras do Cliente</button>
     </div>
 
+    <!-- =========================================================== -->
+    <!-- TELA 2: LISTA DE SAFRAS E CRIAR NOVA SAFRA                  -->
+    <!-- =========================================================== -->
     <div id="safras-screen" class="screen-container">
         <div class="header-seguro">
             <button onclick="voltarParaSetup()" class="btn-voltar-topo">←</button>
@@ -290,7 +341,8 @@
 
         <div class="safra-card">
             <div id="lista-safras" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #eee; border-radius: 8px; padding: 10px; background: #fafafa;">
-                </div>
+                <!-- Lista de safras será injetada aqui -->
+            </div>
 
             <button onclick="criarNovaSafra()" style="width: 100%; background: var(--primary-color); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s;">
                 + Criar Nova Safra para Este Cliente
@@ -298,6 +350,9 @@
         </div>
     </div>
 
+    <!-- =========================================================== -->
+    <!-- TELA 3: MENU DE CATEGORIAS DA SAFRA                         -->
+    <!-- =========================================================== -->
     <div id="menu-prog-screen" class="screen-container">
         <div class="header-seguro">
             <button onclick="voltarParaListaSafras()" class="btn-voltar-topo">←</button>
@@ -335,17 +390,24 @@
         </div>
     </div>
 
+    <!-- =========================================================== -->
+    <!-- MODAL DO VISUALIZADOR DE PDF / IMAGENS (TOP BAR FIXA)       -->
+    <!-- =========================================================== -->
     <div id="modal-pdf">
-        <div class="header-seguro" style="flex-shrink: 0;">
+        <div class="header-pdf-top">
             <button onclick="document.getElementById('modal-pdf').style.display='none'" class="btn-voltar-topo">←</button>
-            <h2 id="titulo-modal-pdf" style="margin: 0; font-size: 22px;">Módulo</h2>
+            <h2 id="titulo-modal-pdf" style="margin: 0; font-size: 22px; text-align: center; flex: 1;">Módulo</h2>
             <button id="btn-salvar-pdf" onclick="salvarImagensNoBanco()" style="background: var(--accent-color); color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; display: none; cursor: pointer;">Salvar</button>
         </div>
         
-        <div id="container-imagens-pdf" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; background: #fff;">
-            </div>
+        <div id="container-imagens-pdf">
+            <!-- Imagens e uploader aparecem aqui -->
+        </div>
     </div>
 
+    <!-- =========================================================== -->
+    <!-- BANCO DE DADOS OFFLINE / INDEXEDDB E LÓGICA COMPLETA        -->
+    <!-- =========================================================== -->
     <script>
         const FAZENDAS_CADASTRADAS = [
             { id: 'altina_cardoso', nome: 'Altina', produtor: 'Condomínio Cardoso' },
@@ -574,7 +636,6 @@
                     const fazenda = dados.fazenda;
                     const localKey = `PROG_${workspaceAtualProg}_${produtor}_${fazenda}_${doc.id}`;
                     
-                    // CONVERSÃO REAL: Transforma cada imagem da nuvem em Base64 para abrir no modo avião!
                     const modulos = ['quimicos', 'adubacao', 'variedades'];
                     for (let m of modulos) {
                         if (dados[m] && Array.isArray(dados[m])) {
