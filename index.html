@@ -208,32 +208,25 @@
     </div>
 
     <script>
+        <script>
         // CONFIGURAÇÃO DO FIREBASE
-const firebaseConfig = {
-    apiKey: "AIzaSyBv2Ul8SKO7KPTt063iJVZB8xQ1kMxpmR0",
-    authDomain: "terraforte-monitoramento.firebaseapp.com",
-    projectId: "terraforte-monitoramento",
-    storageBucket: "terraforte-monitoramento.firebasestorage.app",
-    messagingSenderId: "847411850471",
-    appId: "1:847411850471:web:71106810f796a1df5e4642",
-    measurementId: "G-TE7WG1M145"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyBv2Ul8SKO7KPTt063iJVZB8xQ1kMxpmR0",
+            authDomain: "terraforte-monitoramento.firebaseapp.com",
+            projectId: "terraforte-monitoramento",
+            storageBucket: "terraforte-monitoramento.firebasestorage.app",
+            messagingSenderId: "847411850471",
+            appId: "1:847411850471:web:71106810f796a1df5e4642",
+            measurementId: "G-TE7WG1M145"
+        };
 
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
 
-// 1. INICIALIZAÇÃO DA SESSÃO PERSISTENTE
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
-            return auth.getRedirectResult();
-        }).then(result => {
-            if (result && result.user) {
-                console.log("Login realizado com sucesso!");
-            }
-        }).catch(error => {
-            console.error("Erro no login:", error);
-        });
+        // 1. GARANTE A PERSISTÊNCIA LOCAL (MANTÉM LOGADO)
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        // 2. MONITORAMENTO DE SESSÃO
+        // 2. MONITORAMENTO DE SESSÃO (AUTOMÁTICO)
         auth.onAuthStateChanged(user => {
             const loadingScreen = document.getElementById('loading-auth');
             const loginScreen = document.getElementById('login-screen');
@@ -259,15 +252,14 @@ const auth = firebase.auth();
             }
         });
 
-        // 3. FUNÇÃO DE LOGIN BLINDADA (EVITA O ERRO DE AÇÃO INVÁLIDA)
+        // 3. FUNÇÃO DE LOGIN VIA POPUP (LUGAR CORRETO E SEM ERRO DE AÇÃO INVÁLIDA)
         function fazerLoginGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
             
-            // Força o redirecionamento limpo para o Google
-            auth.signInWithRedirect(provider).catch(error => {
-                alert("Erro ao iniciar login com o Google: " + error.message);
-                console.error(error);
+            auth.signInWithPopup(provider).catch(error => {
+                console.error("Erro no login:", error);
+                alert("Erro ao entrar com o Google: " + error.message);
             });
         }
 
