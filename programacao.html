@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>FuturAgro - Programação de Safra</title>
+    
+    <meta name="theme-color" content="#005d52">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/005d52/ffffff?text=FA">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        }
+    </script>
+
+    <style>
+        :root {
+            --primary-color: #005d52; 
+            --accent-color: #2196f3; 
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --border-color: #ccc;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            padding-bottom: 50px; 
+            min-height: 100vh; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* LOADING MASK */
+        #loading { display: none; position: fixed; inset: 0; background: rgba(0, 93, 82, 0.9); color: white; z-index: 10000; justify-content: center; align-items: center; flex-direction: column; font-size: 20px; font-weight: bold; }
+
+        /* TELAS GERAIS */
+        .screen-container { display: none; flex-direction: column; width: 100%; min-height: 100vh; }
+        .screen-container.active { display: flex; }
+
+        /* TELA 1: SETUP E SELEÇÃO DE FAZENDAS */
+        #setup-screen { background-color: #fff; padding-bottom: 90px; }
+        .setup-header { background-color: var(--primary-color); color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; }
+        .setup-header h1 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -1px; }
+        .setup-header p { margin: 2px 0 0; font-size: 13px; opacity: 0.9; }
+
+        .input-group { padding: 15px 20px; border-bottom: 1px solid #eee; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; font-size: 14px; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .input-group input:focus { outline: 2px solid var(--primary-color); border-color: transparent; }
+
+        .btn-sync-all {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        }
+        .btn-sync-all:hover { background-color: #1976d2; }
+
+        .fazendas-list { padding: 10px 20px; }
+        .fazenda-item { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #eee; cursor: pointer; transition: 0.2s; }
+        .fazenda-item:hover { border-color: var(--primary-color); background: #f0f7f1; }
+        .fazenda-info { flex: 1; }
+        .fazenda-nome { font-size: 18px; font-weight: bold; color: var(--primary-color); }
+        .fazenda-produtor { font-size: 14px; color: #666; margin-top: 2px; }
+        .btn-check { color: var(--primary-color); font-size: 24px; visibility: hidden; }
+        .fazenda-item.selected .btn-check { visibility: visible; }
+        .fazenda-item.selected { border-color: var(--primary-color); background: #e0f2f1; }
+
+        .btn-main-action { 
+            position: fixed; bottom: 20px; left: 20px; right: 20px; 
+            background-color: var(--primary-color); color: white; 
+            border: none; padding: 15px; font-size: 18px; font-weight: bold; 
+            border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+            cursor: pointer; text-align: center; z-index: 100; 
+        }
+
+        /* TELA 2: LISTA DE SAFRAS DO CLIENTE */
+        .safra-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin: 20px; border-top: 4px solid var(--primary-color); }
+        .safra-item { background: #fff; border: 1px solid #ddd; padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .safra-item:hover { border-color: var(--primary-color); background: #f9fcf9; }
+
+        /* TELA 3: MENU DE CATEGORIAS DA SAFRA */
+        .prog-cards-container { max-width: 600px; width: 100%; margin: 30px auto; padding: 0 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; }
+        .prog-card {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 14px;
+            padding: 25px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .prog-card:hover { border-color: var(--primary-color); transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
+        .prog-icon { font-size: 38px; }
+        .prog-title { font-size: 20px; font-weight: bold; color: var(--primary-color); }
+        .prog-sub { font-size: 13px; color: #666; margin-top: 4px; }
+
+        /* MENSAGEM TOAST */
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0, 93, 82, 0.95); color: white; padding: 12px 25px; border-radius: 30px; font-weight: bold; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 9999; }
+        #toast.show { opacity: 1; bottom: 50px; }
+
+        /* MODAL DE ZOOM EM TELA CHEIA */
+        #modal-zoom {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 100000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+        #modal-zoom img {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .btn-fechar-zoom {
+            position: absolute;
+            top: max(20px, env(safe-area-inset-top));
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        /* TELA DE PDF / VISUALIZADOR DO MÓDULO */
+        #modal-pdf {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            flex-direction: column;
+        }
+    </style>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(() => console.log('FuturAgro Offline ativo!'))
+            .catch(err => console.error('Erro no offline:', err));
+        });
+      }
+    </script>
+</head>
+<body>
+
+    <div id="loading">AGUARDE...</div>
+    <div id="toast">Aviso aqui</div>
+
+    <div id="modal-zoom">
+        <button class="btn-fechar-zoom" onclick="fecharZoom()">✖</button>
+        <img id="img-zoom-alvo" src="" alt="Zoom da Página">
+        <div style="color: rgba(255,255,255,0.7); margin-top: 15px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+            Faça o movimento de pinça para aproximar 🔍
+        </div>
+    </div>
+
+    <div id="setup-screen" class="screen-container active">
+        <div class="setup-header">
+            <a href="index.html" style="color: white; text-decoration: none; font-size: 26px; font-weight: bold; line-height: 1;">←</a>
+            <div style="text-align: center; flex: 1;">
+                <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -1px;">FUTURAGRO</h1>
+                <p style="margin: 2px 0 0; font-size: 13px; opacity: 0.9;">Programação de Safra</p>
+            </div>
+            <div style="width: 26px;"></div>
+        </div>
+
+        <div class="input-group">
+            <label for="nomeConsultor">Consultor Técnico:</label>
+            <input type="text" id="nomeConsultor" placeholder="Seu nome completo">
+        </div>
+
+        <div class="input-group">
+            <label for="buscaFazenda">🔍 Buscar Fazenda ou Produtor:</label>
+            <input type="text" id="buscaFazenda" placeholder="Digite para filtrar a lista..." onkeyup="filtrarFazendas()">
+        </div>
+
+        <button type="button" class="btn-sync-all" onclick="baixarDadosSafrasTodosClientes()">
+            ☁️ Baixar dados de safras dos clientes (Offline)
+        </button>
+
+        <div class="fazendas-list" id="listaFazendas"></div>
+        <button class="btn-main-action" onclick="avancarParaListaSafras()">Acessar Safras do Cliente</button>
+    </div>
+
+    <div id="safras-screen" class="screen-container">
+        <div class="safra-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent-color); padding-bottom: 10px; margin-bottom: 15px;">
+                <div>
+                    <h2 style="color: var(--primary-color); font-size: 22px; margin: 0;">Safras do Cliente</h2>
+                    <p style="color: #666; font-size: 14px; margin-top: 4px;" id="lbl-cliente-info">Fazenda | Produtor</p>
+                </div>
+                <button onclick="voltarParaSetup()" style="background: transparent; border: 1px solid #ccc; color: #555; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer;">Trocar Cliente</button>
+            </div>
+
+            <div id="lista-safras" style="max-height: 350px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #eee; border-radius: 8px; padding: 10px; background: #fafafa;">
+                </div>
+
+            <button onclick="criarNovaSafra()" style="width: 100%; background: var(--primary-color); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s;">
+                + Criar Nova Safra para Este Cliente
+            </button>
+        </div>
+    </div>
+
+    <div id="menu-prog-screen" class="screen-container">
+        <div style="background-color: var(--primary-color); color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between;">
+            <button onclick="voltarParaListaSafras()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">←</button>
+            <div style="text-align: center;">
+                <div id="lbl-menu-safra-nome" style="font-weight: bold; font-size: 20px;">Safra Selecionada</div>
+                <div style="font-size: 13px; opacity: 0.9;" id="lbl-menu-cliente-nome">Produtor | Fazenda</div>
+            </div>
+            <a href="index.html" style="color: #a7ffeb; text-decoration: none; font-size: 14px; font-weight: bold;">INÍCIO</a>
+        </div>
+
+        <div class="prog-cards-container">
+            <div class="prog-card" onclick="abrirModuloPdf('Químicos')">
+                <div class="prog-icon">🧪</div>
+                <div>
+                    <div class="prog-title">Químicos</div>
+                    <div class="prog-sub">Programação visual em PDF/Imagens para herbicidas, fungicidas e inseticidas.</div>
+                </div>
+            </div>
+
+            <div class="prog-card" onclick="abrirModuloPdf('Adubação')">
+                <div class="prog-icon">🌱</div>
+                <div>
+                    <div class="prog-title">Adubação</div>
+                    <div class="prog-sub">Programação visual de corretivos, adubos de base e cobertura.</div>
+                </div>
+            </div>
+
+            <div class="prog-card" onclick="abrirModuloPdf('Variedades')">
+                <div class="prog-icon">🌾</div>
+                <div>
+                    <div class="prog-title">Variedades</div>
+                    <div class="prog-sub">Programação visual de cultivares, sementes e população.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-pdf">
+        <div style="background: var(--primary-color); padding: max(15px, env(safe-area-inset-top)) 20px 15px 20px; display: flex; justify-content: space-between; align-items: center; color: white; flex-shrink: 0;">
+            <button onclick="document.getElementById('modal-pdf').style.display='none'" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">←</button>
+            <h2 id="titulo-modal-pdf" style="margin: 0; font-size: 22px;">Módulo</h2>
+            <button id="btn-salvar-pdf" onclick="salvarImagensNoBanco()" style="background: var(--accent-color); color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; display: none; cursor: pointer;">Salvar</button>
+        </div>
+        
+        <div id="container-imagens-pdf" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+            </div>
+    </div>
+
+    <script>
+        // LISTA DE CLIENTES E FAZENDAS IDENTICA AOS OUTROS MÓDULOS
+        const FAZENDAS_CADASTRADAS = [
+            { id: 'altina_cardoso', nome: 'Altina', produtor: 'Condomínio Cardoso' },
+            { id: 'alto_serra_cardoso', nome: 'Alto da Serra', produtor: 'Condomínio Cardoso' },
+            { id: 'ariranha_cardoso', nome: 'Ariranha', produtor: 'Condomínio Cardoso' },
+            { id: 'campo_limpo_cardoso', nome: 'Campo Limpo', produtor: 'Condomínio Cardoso' },
+            { id: 'terra_nova_cardoso', nome: 'Terra Nova', produtor: 'Condomínio Cardoso' },
+            { id: 'tamboril_cardoso', nome: 'Tamboril', produtor: 'Condomínio Cardoso' },
+            { id: 'jg_cardoso', nome: 'JG', produtor: 'Condomínio Cardoso' },
+            { id: 'sao_jose_cardoso', nome: 'São José', produtor: 'Condomínio Cardoso' },
+            { id: 'bom_jesus_cardoso', nome: 'Bom Jesus', produtor: 'Condomínio Cardoso' },
+            { id: 'morro_mesa_cardoso', nome: 'Morro de Mesa', produtor: 'Condomínio Cardoso' },
+            { id: 'rosado_cardoso', nome: 'Rosado', produtor: 'Condomínio Cardoso' },
+            { id: 'campo_alto_saul', nome: 'Campo Alto', produtor: 'Saul Moura' },
+            { id: 'boa_vista_saul', nome: 'Boa Vista', produtor: 'Saul Moura' },
+            { id: 'mourao_saul', nome: 'Mourão', produtor: 'Saul Moura' },
+            { id: 'cachoeira_saul', nome: 'Cachoeira', produtor: 'Saul Moura' },
+            { id: 'ariranha_bg', nome: 'Ariranha', produtor: 'Agropecuária B&G' },
+            { id: 'barro_branco_bg', nome: 'Barro Branco', produtor: 'Agropecuária B&G' },
+            { id: 'boa_vista_bg', nome: 'Boa Vista', produtor: 'Agropecuária B&G' },
+            { id: 'bom_jardim_bg', nome: 'Bom Jardim', produtor: 'Agropecuária B&G' },
+            { id: 'bonanza_bg', nome: 'Bonanza', produtor: 'Agropecuária B&G' },
+            { id: 'mutum_bg', nome: 'Mutum', produtor: 'Agropecuária B&G' },
+            { id: 'ponte_pedra_bg', nome: 'Estreito Ponte de Pedra', produtor: 'Agropecuária B&G' },
+            { id: 'bom_fim_bg', nome: 'Bomfim', produtor: 'Agropecuária B&G' },
+            { id: 'mangueiras_david', nome: 'Faz. das Mangueiras', produtor: 'David Micheli' },
+            { id: 'felicidade_ricardo', nome: 'Felicidade', produtor: 'Ricardo Quaddur' },
+            { id: 'rancho_cbt_ricardo', nome: 'Rancho CBT', produtor: 'Ricardo Quaddur' },
+            { id: 'santa_elza_ricardo', nome: 'Santa Elza', produtor: 'Ricardo Quaddur' },
+            { id: 'beira_rio_ricardo', nome: 'Beira Rio', produtor: 'Ricardo Quaddur' },
+            { id: 'morro_mesa_agro', nome: 'Morro de Mesa', produtor: 'Agro Costa' },
+            { id: 'ariranha_sandro', nome: 'Ariranha', produtor: 'Sandro Maggioni' },
+            { id: 'santa_rita_sandro', nome: 'Santa Rita', produtor: 'Sandro Maggioni' },
+            { id: 'usina_sandro', nome: 'Usina', produtor: 'Sandro Maggioni' },
+            { id: 'estrela_dalva_sandro', nome: 'Estrela Dalva', produtor: 'Sandro Maggioni' },
+            { id: 'peroba_juarez', nome: 'Peroba', produtor: 'Juarez França Neto'},
+            { id: 'ressaca_juarez', nome: 'Ressaca', produtor: 'Juarez França Neto'},
+            { id: 'sucal_juarez', nome: 'Sucal', produtor: 'Juarez França Neto'},
+            { id: 'ariranha_juarez', nome: 'Ariranha', produtor: 'Juarez França Neto' },
+            { id: 'saopedro_juarez', nome: 'São Pedro', produtor: 'Juarez França Neto'},
+            { id: 'semterra_juarez', nome: 'Sem Terra', produtor: 'Juarez França Neto'},
+            { id: 'paraiso_juarez', nome: 'Paraíso', produtor: 'Juarez França Neto'},
+            { id: 'agua_viva_thiago', nome: 'Água Viva', produtor: 'Thiago e Lucas' }
+        ];
+
+        // CONFIGURAÇÃO BLINDADA DO FIREBASE (NUNCA TRAVA SE OFFLINE)
+        let db = null;
+        let storage = null;
+        
+        try {
+            const firebaseConfig = {
+                apiKey: "AIzaSyBv2Ul8SKO7KPTt063iJVZB8xQ1kMxpmR0",
+                authDomain: "terraforte-monitoramento.firebaseapp.com",
+                projectId: "terraforte-monitoramento",
+                storageBucket: "terraforte-monitoramento.firebasestorage.app",
+                messagingSenderId: "847411850471",
+                appId: "1:847411850471:web:71106810f796a1df5e4642",
+                measurementId: "G-TE7WG1M145"
+            };
+            if (typeof firebase !== 'undefined') {
+                if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                storage = firebase.storage();
+            }
+        } catch(e) {
+            console.warn("Firebase operando em modo puramente local/offline:", e);
+        }
+
+        const dbName = 'ConsultoriaAppDB';
+        const storeName = 'relatorios_offline';
+        let localDB;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, 1);
+                request.onupgradeneeded = (e) => {
+                    localDB = e.target.result;
+                    if (!localDB.objectStoreNames.contains(storeName)) localDB.createObjectStore(storeName);
+                };
+                request.onsuccess = (e) => { localDB = e.target.result; resolve(localDB); };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function saveLocalData(key, data) {
+            if (!localDB) await initDB();
+            return new Promise((resolve, reject) => {
+                const tx = localDB.transaction(storeName, 'readwrite');
+                tx.objectStore(storeName).put(data, key);
+                tx.oncomplete = () => resolve(); tx.onerror = () => reject();
+            });
+        }
+
+        async function deleteLocalData(key) {
+            if (!localDB) await initDB();
+            return new Promise((resolve, reject) => {
+                const tx = localDB.transaction(storeName, 'readwrite');
+                tx.objectStore(storeName).delete(key);
+                tx.oncomplete = () => resolve(); tx.onerror = () => reject();
+            });
+        }
+
+        async function getLocalData(key) {
+            if (!localDB) await initDB();
+            return new Promise((resolve, reject) => {
+                const tx = localDB.transaction(storeName, 'readonly');
+                const req = tx.objectStore(storeName).get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject();
+            });
+        }
+
+        async function getAllLocalData() {
+            if (!localDB) await initDB();
+            return new Promise((resolve, reject) => {
+                const tx = localDB.transaction(storeName, 'readonly');
+                const req = tx.objectStore(storeName).getAll();
+                const reqKeys = tx.objectStore(storeName).getAllKeys();
+                req.onsuccess = () => { reqKeys.onsuccess = () => { resolve({ keys: reqKeys.result, values: req.result }); } };
+                req.onerror = () => reject();
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ==========================================
+        // VARIÁVEIS DO SISTEMA
+        // ==========================================
+        let workspaceAtualProg = "master";
+        let fazendaSelecionadaId = null;
+        let safraAtivaId = "";
+        let moduloAtivoPdf = "";
+        let imagensAtuaisPdf = []; 
+        const LS_KEY_CONSULTOR = 'futuragro_consultor';
+
+        // ==========================================
+        // INICIALIZAÇÃO TELA 1 (COM PREENCHIMENTO DIRETO)
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // DESENHA AS FAZENDAS IMEDIATAMENTE ANTES DE QUALQUER OPERAÇÃO DE REDE
+            preencherListaFazendas();
+            document.getElementById('nomeConsultor').value = localStorage.getItem(LS_KEY_CONSULTOR) || '';
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const pWorkspace = urlParams.get('workspace') || urlParams.get('w');
+            if (pWorkspace) workspaceAtualProg = pWorkspace;
+        });
+
+        function preencherListaFazendas() {
+            const lista = document.getElementById('listaFazendas');
+            lista.innerHTML = '';
+
+            FAZENDAS_CADASTRADAS.forEach(fazenda => {
+                const item = document.createElement('div');
+                item.className = 'fazenda-item';
+                item.id = `fz-${fazenda.id}`;
+                item.onclick = () => selecionarFazendaNoMenu(fazenda.id);
+
+                item.innerHTML = `
+                    <div class="fazenda-info">
+                        <div class="fazenda-nome">${fazenda.nome}</div>
+                        <div class="fazenda-produtor">${fazenda.produtor}</div>
+                    </div>
+                    <div class="btn-check">✓</div>
+                `;
+                lista.appendChild(item);
+            });
+        }
+
+        function filtrarFazendas() {
+            const termo = document.getElementById('buscaFazenda').value.toLowerCase();
+            document.querySelectorAll('.fazenda-item').forEach(item => {
+                const texto = item.innerText.toLowerCase();
+                item.style.display = texto.includes(termo) ? 'flex' : 'none';
+            });
+        }
+
+        function selecionarFazendaNoMenu(id) {
+            fazendaSelecionadaId = id;
+            document.querySelectorAll('.fazenda-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`fz-${id}`).classList.add('selected');
+        }
+
+        // ==========================================
+        // FUNÇÃO: BAIXAR TODOS OS DADOS (OFFLINE)
+        // ==========================================
+        async function baixarDadosSafrasTodosClientes() {
+            if (!navigator.onLine || !db) {
+                alert("Você está sem internet no momento ou sem conexão com a nuvem. Conecte-se para sincronizar.");
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('loading').textContent = 'BAIXANDO TODAS AS SAFRAS...';
+
+            try {
+                const snap = await db.collection('usuarios').doc(workspaceAtualProg).collection('programacoes_safra').get();
+                let cont = 0;
+
+                for (let doc of snap.docs) {
+                    const dados = doc.data();
+                    const produtor = dados.produtor;
+                    const fazenda = dados.fazenda;
+                    const localKey = `PROG_${workspaceAtualProg}_${produtor}_${fazenda}_${doc.id}`;
+                    
+                    await saveLocalData(localKey, dados);
+                    cont++;
+                }
+
+                showToast(`✅ ${cont} programação(ões) de safra baixada(s) para uso Offline!`);
+            } catch (e) {
+                alert("Erro ao baixar dados da nuvem: " + e.message);
+                console.error(e);
+            }
+
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // ==========================================
+        // FLUXO TELA 2: LISTAR E CRIAR SAFRAS
+        // ==========================================
+        function avancarParaListaSafras() {
+            const consultor = document.getElementById('nomeConsultor').value.trim();
+            if (!consultor || !fazendaSelecionadaId) {
+                alert("Preencha o nome do consultor e selecione um cliente/fazenda na lista.");
+                return;
+            }
+
+            localStorage.setItem(LS_KEY_CONSULTOR, consultor);
+            const fazendaData = FAZENDAS_CADASTRADAS.find(f => f.id === fazendaSelecionadaId);
+
+            document.getElementById('lbl-cliente-info').textContent = `${fazendaData.nome} | ${fazendaData.produtor}`;
+            mostrarTela('safras-screen');
+            window.scrollTo(0, 0);
+
+            buscarSafrasNuvem(fazendaData.produtor, fazendaData.nome);
+        }
+
+        async function buscarSafrasNuvem(produtor, fazenda) {
+            const container = document.getElementById('lista-safras');
+            container.innerHTML = '<p style="text-align:center; padding: 20px;">Varrendo safras disponíveis...</p>';
+
+            let mapSafras = new Map();
+
+            try {
+                // 1. TENTA BUSCAR OFFLINE PRIMEIRO
+                const localData = await getAllLocalData();
+                if (localData && localData.keys) {
+                    for (let i = 0; i < localData.keys.length; i++) {
+                        const key = localData.keys[i];
+                        if (key.startsWith(`PROG_${workspaceAtualProg}_${produtor}_${fazenda}_`)) {
+                            mapSafras.set(key, localData.values[i]);
+                        }
+                    }
+                }
+
+                // 2. BUSCA NA NUVEM PARA ATUALIZAR (Se tiver internet e Firebase ativo)
+                if (navigator.onLine && db) {
+                    try {
+                        const snap = await db.collection('usuarios').doc(workspaceAtualProg).collection('programacoes_safra')
+                            .where('produtor', '==', produtor)
+                            .where('fazenda', '==', fazenda)
+                            .get();
+
+                        snap.forEach(doc => {
+                            const d = doc.data();
+                            const localKey = `PROG_${workspaceAtualProg}_${produtor}_${fazenda}_${doc.id}`;
+                            saveLocalData(localKey, d); // Backup local
+                            mapSafras.set(localKey, d); // Previne duplicidade
+                        });
+                    } catch (e) {
+                        console.log("Nuvem inacessível. Usando apenas cache local.");
+                    }
+                }
+
+                if (mapSafras.size === 0) {
+                    container.innerHTML = '<p style="text-align:center; color:#888; padding: 20px;">Nenhuma safra registrada para esta fazenda. Crie uma abaixo.</p>';
+                    return;
+                }
+
+                let html = '';
+                Array.from(mapSafras.entries()).forEach(([key, data]) => {
+                    html += `
+                        <div class="safra-item">
+                            <div style="flex:1; cursor:pointer;" onclick="abrirMenuSafra('${key}', '${data.safra}')">
+                                <strong style="color:var(--primary-color); font-size:18px;">🌱 ${data.safra}</strong>
+                                <div style="font-size:12px; color:var(--accent-color); font-weight:bold; margin-top:5px;">Acessar Programações ➔</div>
+                            </div>
+                            <button onclick="excluirSafraTotal(event, '${key}')" style="background:none; border:none; color:#e74c3c; font-size:20px; cursor:pointer; padding:10px;" title="Excluir Safra">🗑️</button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+
+            } catch (e) {
+                container.innerHTML = `<p style="color:red; text-align:center; padding: 20px;">Erro: ${e.message}</p>`;
+            }
+        }
+
+        async function excluirSafraTotal(event, localKey) {
+            event.stopPropagation();
+            if (!confirm("Atenção! Tem certeza que deseja excluir esta Safra inteira permanentemente?")) return;
+
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('loading').textContent = 'EXCLUINDO...';
+
+            try {
+                if (navigator.onLine && db) {
+                    const partes = localKey.split('_');
+                    const idDoc = partes[partes.length - 1];
+                    await db.collection('usuarios').doc(workspaceAtualProg).collection('programacoes_safra').doc(idDoc).delete();
+                }
+                
+                await deleteLocalData(localKey);
+                showToast("🗑️ Safra excluída!");
+                
+                const fazendaData = FAZENDAS_CADASTRADAS.find(f => f.id === fazendaSelecionadaId);
+                buscarSafrasNuvem(fazendaData.produtor, fazendaData.nome);
+
+            } catch (e) {
+                alert("Erro ao excluir: " + e.message);
+            }
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        async function criarNovaSafra() {
+            const nomeSafra = prompt("Digite o nome da nova Safra\nExemplo: Safra 2025/2026 ou Safrinha 2026");
+            if (!nomeSafra) return;
+
+            const fazendaData = FAZENDAS_CADASTRADAS.find(f => f.id === fazendaSelecionadaId);
+            const idDoc = `${fazendaData.produtor}_${fazendaData.nome}_${nomeSafra}`.replace(/[\s\/]/g, '_').toLowerCase();
+            const localKey = `PROG_${workspaceAtualProg}_${fazendaData.produtor}_${fazendaData.nome}_${idDoc}`;
+
+            const payload = {
+                workspace: workspaceAtualProg,
+                produtor: fazendaData.produtor,
+                fazenda: fazendaData.nome,
+                safra: nomeSafra.toUpperCase(),
+                quimicos: [],
+                adubacao: [],
+                variedades: [],
+                atualizadoEm: Date.now()
+            };
+
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('loading').textContent = 'CRIANDO SAFRA...';
+
+            try {
+                if (navigator.onLine && db) {
+                    await db.collection('usuarios').doc(workspaceAtualProg).collection('programacoes_safra').doc(idDoc).set(payload);
+                }
+                await saveLocalData(localKey, payload);
+                showToast("✨ Nova safra criada!");
+
+                // Entra direto no menu de categorias da safra nova
+                abrirMenuSafra(localKey, payload.safra);
+
+            } catch (e) {
+                alert("Erro ao criar safra: " + e.message);
+            }
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // ==========================================
+        // FLUXO TELA 3: MENU E MÓDULOS DE IMAGENS
+        // ==========================================
+        function abrirMenuSafra(localKey, nomeSafra) {
+            safraAtivaId = localKey;
+            const fazendaData = FAZENDAS_CADASTRADAS.find(f => f.id === fazendaSelecionadaId);
+
+            document.getElementById('lbl-menu-safra-nome').textContent = `Safra: ${nomeSafra}`;
+            document.getElementById('lbl-menu-cliente-nome').textContent = `${fazendaData.produtor} | ${fazendaData.nome}`;
+            
+            mostrarTela('menu-prog-screen');
+            window.scrollTo(0, 0);
+        }
+
+        function voltarParaSetup() {
+            mostrarTela('setup-screen');
+            window.scrollTo(0, 0);
+        }
+
+        function voltarParaListaSafras() {
+            mostrarTela('safras-screen');
+            window.scrollTo(0, 0);
+        }
+
+        async function obterDadosSafraSeguro(localKey) {
+            let d = await getLocalData(localKey);
+            if (!d && navigator.onLine && db) {
+                const partes = localKey.split('_');
+                const idDoc = partes[partes.length - 1]; 
+                const doc = await db.collection('usuarios').doc(workspaceAtualProg).collection('programacoes_safra').doc(idDoc).get();
+                if (doc.exists) {
+                    d = doc.data();
+                    await saveLocalData(localKey, d); 
+                }
+            }
+            return d;
+        }
+
+        async function abrirModuloPdf(modulo) {
+            moduloAtivoPdf = modulo;
+            document.getElementById('titulo-modal-pdf').textContent = modulo;
+            document.getElementById('modal-pdf').style.display = 'flex';
+            document.getElementById('btn-salvar-pdf').style.display = 'none';
+            
+            const container = document.getElementById('container-imagens-pdf');
+            container.innerHTML = '<p style="color:white; text-align:center;">Buscando programação salva...</p>';
+
+            try {
+                let safraObj = null;
+                const partes = safraAtivaId.split('_');
+                const idDoc = partes[partes.length - 1]; 
+
+                if (navigator.onLine && db) {
+                    try {
+                        const doc = await db.collection('usuarios').doc(workspaceAtualProg).collection('programacoes_safra').doc(idDoc).get();
+                        if (doc.exists) safraObj = doc.data();
+                    } catch(err) {
+                        console.log("Erro na busca online, lendo cache offline...", err);
+                    }
+                }
+
+                if (!safraObj) {
+                    safraObj = await getLocalData(safraAtivaId);
+                    if (!safraObj) {
+                        container.innerHTML = `
+                            <div style="text-align:center; padding: 40px 20px; background:rgba(255,255,255,0.1); border-radius:12px; border:2px dashed #e74c3c; width:100%; max-width:500px;">
+                                <h3 style="color:#e74c3c; margin-bottom:15px;">Sem Conexão</h3>
+                                <p style="color:#ccc; font-size:14px;">Você está sem internet e esta safra não foi baixada offline. Conecte-se ou use o botão de sincronização.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                }
+
+                let campoImg = "quimicos";
+                if (modulo === "Adubação") campoImg = "adubacao";
+                if (modulo === "Variedades") campoImg = "variedades";
+
+                imagensAtuaisPdf = safraObj[campoImg] || [];
+                renderizarListaImagensPdf();
+
+            } catch (e) {
+                container.innerHTML = `<p style="color:red; text-align:center;">Erro ao carregar módulo.</p>`;
+            }
+        }
+
+        function renderizarListaImagensPdf() {
+            const container = document.getElementById('container-imagens-pdf');
+            container.innerHTML = '';
+
+            if (imagensAtuaisPdf.length > 0) {
+                container.innerHTML += `
+                    <div style="display:flex; justify-content:center; width:100%; max-width:800px; margin-bottom:15px;">
+                        <button onclick="limparTodoPdf()" style="width:100%; background:#e74c3c; color:white; border:none; padding:15px; border-radius:8px; font-weight:bold; font-size:16px; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+                            🗑️ Excluir Arquivo PDF Inteiro
+                        </button>
+                    </div>
+                `;
+
+                imagensAtuaisPdf.forEach((imgData, index) => {
+                    container.innerHTML += `
+                        <div style="position:relative; width:100%; max-width:800px; margin-bottom:10px;">
+                            <img src="${imgData}" onclick="abrirZoom('${imgData}')" style="width:100%; border-radius:8px; box-shadow:0 5px 15px rgba(0,0,0,0.5); cursor: zoom-in;">
+                            <button onclick="removerImagemPdf(${index})" style="position:absolute; top:-10px; right:-10px; background:#e74c3c; color:white; border:none; border-radius:50%; width:35px; height:35px; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.5);">✖</button>
+                        </div>
+                    `;
+                });
+            } else {
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 40px 20px; background:rgba(255,255,255,0.1); border-radius:12px; border:2px dashed var(--accent-color); width:100%; max-width:500px;">
+                        <h3 style="color:white; margin-bottom:15px;">Nenhum arquivo inserido</h3>
+                        <p style="color:#ccc; margin-bottom:25px; font-size:14px;">Envie a programação em formato PDF. Ela será convertida em imagens localmente para visualização 100% offline.</p>
+                        
+                        <label style="background:var(--accent-color); color:white; padding:12px 25px; border-radius:8px; font-weight:bold; cursor:pointer; display:inline-block;">
+                            📄 Escolher Arquivo PDF
+                            <input type="file" accept="application/pdf" style="display:none;" onchange="processarArquivoPdf(event)">
+                        </label>
+                    </div>
+                `;
+            }
+        }
+
+        function limparTodoPdf() {
+            if (confirm("Tem certeza que deseja apagar TODAS as páginas deste PDF?")) {
+                imagensAtuaisPdf = []; 
+                renderizarListaImagensPdf(); 
+                document.getElementById('btn-salvar-pdf').style.display = 'block'; 
+            }
+        }
+
+        function removerImagemPdf(index) {
+            if (confirm("Deseja remover esta página?")) {
+                imagensAtuaisPdf.splice(index, 1); 
+                renderizarListaImagensPdf(); 
+                document.getElementById('btn-salvar-pdf').style.display = 'block'; 
+            }
+        }
+
+        async function processarArquivoPdf(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.type !== "application/pdf") { alert("Por favor, selecione um arquivo no formato PDF."); return; }
+
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('loading').textContent = 'CONVERTENDO PDF PARA OFFLINE...';
+
+            const fileReader = new FileReader();
+            fileReader.onload = async function() {
+                const typedarray = new Uint8Array(this.result);
+                
+                try {
+                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    imagensAtuaisPdf = []; 
+
+                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                        const page = await pdf.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: 1.5 }); 
+
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                        const imgBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                        imagensAtuaisPdf.push(imgBase64);
+                    }
+
+                    renderizarListaImagensPdf(); 
+                    document.getElementById('btn-salvar-pdf').style.display = 'block';
+
+                } catch (error) {
+                    alert("Ocorreu um erro ao processar o PDF. Tente um arquivo mais leve.");
+                    console.error(error);
+                }
+                
+                document.getElementById('loading').style.display = 'none';
+            };
+            fileReader.readAsArrayBuffer(file);
+        }
+
+        async function salvarImagensNoBanco() {
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('loading').textContent = 'SALVANDO...';
+
+            try {
+                const safraObj = await obterDadosSafraSeguro(safraAtivaId);
+                if (!safraObj || !safraObj.produtor) {
+                    alert("Erro: Dados da safra não encontrados!");
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+
+                let campoImg = "quimicos";
+                if (moduloAtivoPdf === "Adubação") campoImg = "adubacao";
+                if (moduloAtivoPdf === "Variedades") campoImg = "variedades";
+
+                const idDoc = `${safraObj.produtor}_${safraObj.fazenda}_${safraObj.safra}`.replace(/[\s\/]/g, '_').toLowerCase();
+
+                if (navigator.onLine && db && storage) {
+                    document.getElementById('loading').textContent = 'ENVIANDO PARA A NUVEM...';
+                    let urlsFinais = [];
+
+                    for (let i = 0; i < imagensAtuaisPdf.length; i++) {
+                        const imgAtual = imagensAtuaisPdf[i];
+                        
+                        if (imgAtual.startsWith('http')) {
+                            urlsFinais.push(imgAtual);
+                        } else {
+                            const path = `pdf_safras/${workspaceAtualProg}/${idDoc}/${campoImg}_pag_${i}_${Date.now()}.jpg`;
+                            const ref = storage.ref().child(path);
+                            
+                            const response = await fetch(imgAtual);
+                            const blob = await response.blob();
+                            await ref.put(blob);
+                            
+                            const url = await ref.getDownloadURL();
+                            urlsFinais.push(url);
+                        }
+                    }
+
+                    safraObj[campoImg] = urlsFinais;
+                    safraObj.atualizadoEm = Date.now();
+
+                    await db.collection('usuarios').doc(workspaceAtualProg).collection('programacoes_safra').doc(idDoc).set(safraObj);
+                    await saveLocalData(safraAtivaId, safraObj);
+                    
+                    document.getElementById('loading').textContent = '✅ ARQUIVO SALVO NA NUVEM!';
+                } else {
+                    safraObj[campoImg] = imagensAtuaisPdf;
+                    safraObj.atualizadoEm = Date.now();
+                    await saveLocalData(safraAtivaId, safraObj);
+                    
+                    document.getElementById('loading').textContent = '💾 SALVO NO CELULAR (SEM INTERNET)';
+                }
+
+                document.getElementById('btn-salvar-pdf').style.display = 'none';
+
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                    showToast("Módulo PDF atualizado com sucesso!");
+                }, 1500);
+
+            } catch (e) {
+                alert("Erro ao salvar: " + e.message);
+                console.error(e);
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // ==========================================
+        // UTILITÁRIOS GERAIS E GESTO VOLTAR
+        // ==========================================
+        function mostrarTela(idTela) {
+            document.querySelectorAll('.screen-container').forEach(el => el.classList.remove('active'));
+            document.getElementById(idTela).classList.add('active');
+        }
+
+        function abrirZoom(src) {
+            document.getElementById('img-zoom-alvo').src = src;
+            document.getElementById('modal-zoom').style.display = 'flex';
+        }
+
+        function fecharZoom() {
+            document.getElementById('modal-zoom').style.display = 'none';
+            document.getElementById('img-zoom-alvo').src = '';
+        }
+
+        function clicouVoltar() {
+            const modalPdf = document.getElementById('modal-pdf');
+            if (modalPdf.style.display === 'flex' || modalPdf.style.display === 'block') {
+                modalPdf.style.display = 'none';
+                return;
+            }
+
+            const menuProg = document.getElementById('menu-prog-screen');
+            if (menuProg.classList.contains('active')) {
+                voltarParaListaSafras();
+                return;
+            }
+
+            const safrasScreen = document.getElementById('safras-screen');
+            if (safrasScreen.classList.contains('active')) {
+                voltarParaSetup();
+                return;
+            }
+
+            document.body.style.transition = 'transform 0.3s ease-out';
+            document.body.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                window.location.replace('index.html');
+            }, 300);
+        }
+
+        let toqueInicioX = 0; let toqueFimX = 0; let toqueInicioY = 0; let toqueFimY = 0;
+        
+        document.addEventListener('touchstart', function(e) { 
+            toqueInicioX = e.changedTouches[0].screenX; 
+            toqueInicioY = e.changedTouches[0].screenY; 
+        }, {passive: true});
+        
+        document.addEventListener('touchend', function(e) { 
+            toqueFimX = e.changedTouches[0].screenX; 
+            toqueFimY = e.changedTouches[0].screenY; 
+            verificarGestoVoltar(); 
+        }, {passive: true});
+
+        function verificarGestoVoltar() {
+            if (toqueInicioX < 40 && (toqueFimX - toqueInicioX) > 80 && Math.abs(toqueFimY - toqueInicioY) < 60) {
+                const modalZoom = document.getElementById('modal-zoom');
+                if (modalZoom.style.display !== 'flex' && modalZoom.style.display !== 'block') {
+                    clicouVoltar();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
