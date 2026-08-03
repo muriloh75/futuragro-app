@@ -208,76 +208,85 @@
     </div>
 
     <script>
-        // FIREBASE CONFIG (Sua configuração original)
-        const firebaseConfig = {
-            apiKey: "AIzaSyBv2Ul8SKO7KPTt063iJVZB8xQ1kMxpmR0",
-            authDomain: "terraforte-monitoramento.firebaseapp.com",
-            projectId: "terraforte-monitoramento",
-            storageBucket: "terraforte-monitoramento.firebasestorage.app",
-            messagingSenderId: "847411850471",
-            appId: "1:847411850471:web:71106810f796a1df5e4642",
-            measurementId: "G-TE7WG1M145"
-        };
-        
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+        // CONFIGURAÇÃO DO FIREBASE
+const firebaseConfig = {
+    apiKey: "AIzaSyBv2Ul8SKO7KPTt063iJVZB8xQ1kMxpmR0",
+    authDomain: "terraforte-monitoramento.firebaseapp.com",
+    projectId: "terraforte-monitoramento",
+    storageBucket: "terraforte-monitoramento.firebasestorage.app",
+    messagingSenderId: "847411850471",
+    appId: "1:847411850471:web:71106810f796a1df5e4642",
+    measurementId: "G-TE7WG1M145"
+};
 
-        // 1. VERIFICA SE O USUÁRIO JÁ ESTÁ CONECTADO (PERSISTENTE)
-        auth.onAuthStateChanged(user => {
-            const loadingScreen = document.getElementById('loading-auth');
-            const loginScreen = document.getElementById('login-screen');
-            const appScreen = document.getElementById('app-screen');
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
-            loadingScreen.style.display = 'none';
+// 1. CAPTURA O RESULTADO SE O LOGIN FOI FEITO VIA REDIRECIONAMENTO (MOBILE)
+auth.getRedirectResult().then(result => {
+    if (result.user) {
+        console.log("Login efetuado com sucesso via redirecionamento!");
+    }
+}).catch(error => {
+    console.error("Erro no redirecionamento do Google:", error);
+    if (error.code === 'auth/unauthorized-domain') {
+        alert("Atenção: Adicione o seu domínio do GitHub Pages nas configurações de Domínios Autorizados no Firebase.");
+    }
+});
 
-            if (user) {
-                // Usuário está logado! Mostra o painel central
-                loginScreen.style.display = 'none';
-                appScreen.style.display = 'flex';
+// 2. MONITORIZAÇÃO DE SESSÃO PERSISTENTE
+auth.onAuthStateChanged(user => {
+    const loadingScreen = document.getElementById('loading-auth');
+    const loginScreen = document.getElementById('login-screen');
+    const appScreen = document.getElementById('app-screen');
 
-                // Preenche dados do consultor no cabeçalho
-                document.getElementById('user-name').textContent = user.displayName || 'Consultor';
-                document.getElementById('user-email').textContent = user.email;
-                if (user.photoURL) {
-                    document.getElementById('user-photo').src = user.photoURL;
-                }
+    loadingScreen.style.display = 'none';
 
-                // Salva o nome e e-mail no localStorage para preencher os outros módulos automaticamente
-                localStorage.setItem('futuragro_consultor', user.displayName || user.email);
-                localStorage.setItem('tf_user_email', user.email);
-            } else {
-                // Usuário não está logado! Mostra tela de login
-                loginScreen.style.display = 'flex';
-                appScreen.style.display = 'none';
-            }
+    if (user) {
+        // Usuário autenticado: abre o Painel Central
+        loginScreen.style.display = 'none';
+        appScreen.style.display = 'flex';
+
+        document.getElementById('user-name').textContent = user.displayName || 'Consultor';
+        document.getElementById('user-email').textContent = user.email;
+        if (user.photoURL) {
+            document.getElementById('user-photo').src = user.photoURL;
+        }
+
+        // Armazena no localStorage para preenchimento automático nos outros módulos
+        localStorage.setItem('futuragro_consultor', user.displayName || user.email);
+        localStorage.setItem('tf_user_email', user.email);
+    } else {
+        // Sem sessão: exibe tela de login
+        loginScreen.style.display = 'flex';
+        appScreen.style.display = 'none';
+    }
+});
+
+// 3. FUNÇÃO DE LOGIN OTIMIZADA PARA CELULAR
+function fazerLoginGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    
+    // Tenta por Popup; se o telemóvel bloquear, utiliza o Redirect
+    auth.signInWithPopup(provider).catch(error => {
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            auth.signInWithRedirect(provider);
+        } else {
+            alert("Erro ao realizar login: " + error.message);
+        }
+    });
+}
+
+// 4. LOGOFF
+function fazerLogout() {
+    if (confirm("Deseja realmente encerrar a sessão da sua conta?")) {
+        auth.signOut().then(() => {
+            localStorage.removeItem('futuragro_consultor');
+            localStorage.removeItem('tf_user_email');
         });
-
-        // 2. FUNÇÃO DE LOGIN COM CONTA DO GOOGLE
-        function fazerLoginGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            
-            // signInWithPopup funciona em navegadores e celulares instalados como App PWA
-            auth.signInWithPopup(provider).catch(error => {
-                console.error("Erro no login com Google:", error);
-                
-                // Se o popup for bloqueado no celular, tenta por redirecionamento
-                if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-                    auth.signInWithRedirect(provider);
-                } else {
-                    alert("Não foi possível fazer login: " + error.message);
-                }
-            });
-        }
-
-        // 3. FUNÇÃO PARA SAIR DA CONTA (LOGOFF EXPLICITO)
-        function fazerLogout() {
-            if (confirm("Deseja realmente sair da sua conta do Google?")) {
-                auth.signOut().then(() => {
-                    localStorage.removeItem('futuragro_consultor');
-                    localStorage.removeItem('tf_user_email');
-                });
-            }
-        }
+    }
+}
     </script>
 </body>
 </html>
