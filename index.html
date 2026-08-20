@@ -88,10 +88,11 @@
     <div id="app-screen">
         <header class="header-app">
             <h1>FUTURAGRO</h1>
-            <div class="user-profile">
+            <div class="user-profile" onclick="trocarNome()" style="cursor: pointer;" title="Clique para editar seu nome">
                 <img id="user-photo" class="user-avatar" src="https://via.placeholder.com/40/003d35/ffffff?text=FA" alt="Consultor">
                 <div class="user-info">
-                    <span id="user-name" class="user-name">Consultor Offline</span>
+                    <span id="user-name" class="user-name">Carregando...</span>
+                    <span style="font-size: 10px; color: #a7ffeb; margin-top: -2px;">Mudar nome</span>
                 </div>
             </div>
         </header>
@@ -122,9 +123,47 @@
     </div>
 
     <script>
-        // Esse script pequeno garante que os outros módulos (que precisavam do nome do usuário) não quebrem.
-        localStorage.setItem('tf_nome_consultor', 'Consultor Offline');
-        localStorage.setItem('futuragro_consultor', 'Consultor Offline');
+        // Função que roda assim que o aplicativo abre
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarESalvarNome();
+        });
+
+        function verificarESalvarNome() {
+            // Busca o nome na memória do celular
+            let consultorSalvo = localStorage.getItem('futuragro_consultor');
+            
+            // Se não tiver nome, for nulo ou for o "Consultor Offline", ele pergunta
+            if (!consultorSalvo || consultorSalvo === 'Consultor Offline' || consultorSalvo === 'null') {
+                let nomeDigitado = prompt("Bem-vindo(a) ao modo Offline!\n\nPor favor, digite o seu nome. (Ele aparecerá nos relatórios e receitas):");
+                
+                if (nomeDigitado && nomeDigitado.trim() !== "") {
+                    consultorSalvo = nomeDigitado.trim();
+                } else {
+                    consultorSalvo = "Consultor Padrão"; // Nome de segurança se a pessoa cancelar
+                }
+                
+                // Salva permanentemente no celular
+                localStorage.setItem('futuragro_consultor', consultorSalvo);
+                localStorage.setItem('tf_nome_consultor', consultorSalvo); // Algumas telas usam essa chave
+            }
+
+            // Escreve o nome na tela
+            document.getElementById('user-name').textContent = consultorSalvo;
+        }
+
+        // Função para o usuário trocar de nome manualmente clicando no topo
+        function trocarNome() {
+            let nomeAtual = localStorage.getItem('futuragro_consultor');
+            if (nomeAtual === 'Consultor Offline' || nomeAtual === 'null') nomeAtual = "";
+            
+            let novoNome = prompt("Editar nome do consultor:", nomeAtual);
+            
+            if (novoNome && novoNome.trim() !== "") {
+                localStorage.setItem('futuragro_consultor', novoNome.trim());
+                localStorage.setItem('tf_nome_consultor', novoNome.trim());
+                document.getElementById('user-name').textContent = novoNome.trim();
+            }
+        }
     </script>
 </body>
 </html>
