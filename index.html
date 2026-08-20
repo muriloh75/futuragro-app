@@ -11,9 +11,6 @@
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/005d52/ffffff?text=FA">
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
     <style>
         :root {
             --primary-color: #005d52; 
@@ -27,56 +24,8 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Barlow', -apple-system, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
 
-        /* LOADING MASK */
-        #loading-auth {
-            position: fixed; inset: 0; background: var(--primary-dark); color: white;
-            z-index: 10000; display: flex; justify-content: center; align-items: center;
-            flex-direction: column; font-family: 'Barlow Condensed', sans-serif;
-            font-size: 24px; letter-spacing: 2px;
-        }
-
-        /* TELA DE LOGIN */
-        #login-screen {
-            display: none; flex: 1; align-items: center; justify-content: center;
-            background: linear-gradient(160deg, var(--primary-dark) 0%, var(--primary-color) 100%);
-            padding: 20px;
-        }
-        .login-box {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 20px;
-            padding: 45px 30px;
-            width: 100%;
-            max-width: 400px;
-            backdrop-filter: blur(15px);
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .login-logo { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 46px; color: white; letter-spacing: 1px; line-height: 1; }
-        .login-sub { font-family: 'Barlow Condensed', sans-serif; color: #a7ffeb; font-size: 16px; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; margin-bottom: 35px; }
-        
-        .btn-google {
-            width: 100%;
-            padding: 15px 20px;
-            background: white;
-            color: #333;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            transition: 0.2s;
-        }
-        .btn-google:hover { background: #f1f1f1; transform: translateY(-2px); }
-        .google-icon { width: 22px; height: 22px; }
-
         /* TELA PRINCIPAL (APP) */
-        #app-screen { display: none; flex: 1; flex-direction: column; }
+        #app-screen { display: flex; flex: 1; flex-direction: column; }
 
         /* HEADER DO APP */
         .header-app { 
@@ -93,23 +42,9 @@
         
         .user-profile { display: flex; align-items: center; gap: 12px; }
         .user-info { display: flex; flex-direction: column; align-items: flex-end; }
-        .user-name { font-size: 14px; font-weight: bold; color: white; }
-        .user-email { font-size: 11px; opacity: 0.85; color: #a7ffeb; }
+        .user-name { font-size: 15px; font-weight: bold; color: white; }
         .user-avatar { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #a7ffeb; object-fit: cover; }
         
-        .btn-logout { 
-            background: rgba(255,255,255,0.15); 
-            border: 1px solid rgba(255,255,255,0.3); 
-            color: white; 
-            padding: 6px 12px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 12px;
-            font-weight: bold; 
-            transition: 0.2s;
-        }
-        .btn-logout:hover { background: rgba(255,255,255,0.25); }
-
         /* MENU DE MÓDULOS */
         .dashboard-container { flex: 1; padding: 25px 15px; max-width: 800px; margin: 0 auto; width: 100%; }
         .dashboard-title { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; color: var(--primary-color); margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; }
@@ -150,35 +85,14 @@
 </head>
 <body>
 
-    <div id="loading-auth">VERIFICANDO SESSÃO...</div>
-
-    <div id="login-screen">
-        <div class="login-box">
-            <div class="login-logo">FUTURAGRO</div>
-            <div class="login-sub">Consultoria Agronômica</div>
-            
-            <button type="button" class="btn-google" onclick="fazerLoginGoogle(event)">
-    <svg class="google-icon" viewBox="0 0 24 24">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-    </svg>
-    Entrar com o Google
-</button>
-        </div>
-    </div>
-
     <div id="app-screen">
         <header class="header-app">
             <h1>FUTURAGRO</h1>
             <div class="user-profile">
-                <img id="user-photo" class="user-avatar" src="https://via.placeholder.com/40" alt="Consultor">
+                <img id="user-photo" class="user-avatar" src="https://via.placeholder.com/40/003d35/ffffff?text=FA" alt="Consultor">
                 <div class="user-info">
-                    <span id="user-name" class="user-name">Consultor</span>
-                    <span id="user-email" class="user-email">email@exemplo.com</span>
+                    <span id="user-name" class="user-name">Consultor Offline</span>
                 </div>
-                <button class="btn-logout" onclick="fazerLogout()" title="Sair da conta">Sair</button>
             </div>
         </header>
 
@@ -208,91 +122,9 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO DO FIREBASE
-        const firebaseConfig = {
-            apiKey: "AIzaSyBv2Ul8SKO7KPTt063iJVZB8xQ1kMxpmR0",
-            authDomain: "terraforte-monitoramento.firebaseapp.com",
-            projectId: "terraforte-monitoramento",
-            storageBucket: "terraforte-monitoramento.firebasestorage.app",
-            messagingSenderId: "847411850471",
-            appId: "1:847411850471:web:71106810f796a1df5e4642",
-            measurementId: "G-TE7WG1M145"
-        };
-
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-
-        // 1. GARANTE A PERSISTÊNCIA LOCAL
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-
-        // 2. TIMEOUT (Remove a tela de loading após 3 segundos por segurança)
-        setTimeout(() => {
-            const loading = document.getElementById('loading-auth');
-            if(loading) loading.style.display = 'none';
-        }, 3000);
-
-        // 3. MONITORAMENTO DE SESSÃO
-        auth.onAuthStateChanged(user => {
-            document.getElementById('loading-auth').style.display = 'none';
-            const loginScreen = document.getElementById('login-screen');
-            const appScreen = document.getElementById('app-screen');
-
-            if (user) {
-                loginScreen.style.display = 'none';
-                appScreen.style.display = 'flex';
-                
-                document.getElementById('user-name').textContent = user.displayName || 'Consultor';
-                document.getElementById('user-email').textContent = user.email;
-                if (user.photoURL) document.getElementById('user-photo').src = user.photoURL;
-
-                localStorage.setItem('futuragro_consultor', user.displayName || user.email);
-            } else {
-                loginScreen.style.display = 'flex';
-                appScreen.style.display = 'none';
-            }
-        });
-
-        // 4. FUNÇÃO DE LOGIN PERFEITA
-        let loginAberto = false; // Trava contra popups múltiplos
-
-        window.fazerLoginGoogle = function(event) {
-            // ESSA LINHA É MÁGICA: Impede que o botão recarregue a página!
-            if (event) event.preventDefault();
-
-            if (loginAberto) return;
-            loginAberto = true;
-
-            const btn = document.querySelector('.btn-google');
-            btn.innerHTML = '🔄 Abrindo Google...';
-
-            const provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
-            
-            // Forçamos o Popup, que é a única forma estável se o PWA do iPhone estiver limpando a sessão.
-            auth.signInWithPopup(provider).then(() => {
-                loginAberto = false;
-            }).catch(error => {
-                loginAberto = false;
-                btn.innerHTML = 'Entrar com o Google';
-                
-                // Ignora erros chatos se você fechar o pop-up sem querer
-                if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-                    return; 
-                }
-                
-                alert("Erro ao entrar: " + error.message);
-            });
-        };
-
-        // 5. LOGOFF
-        window.fazerLogout = function() {
-            if (confirm("Deseja sair da sua conta?")) {
-                auth.signOut().then(() => {
-                    localStorage.removeItem('futuragro_consultor');
-                    window.location.reload();
-                });
-            }
-        };
+        // Esse script pequeno garante que os outros módulos (que precisavam do nome do usuário) não quebrem.
+        localStorage.setItem('tf_nome_consultor', 'Consultor Offline');
+        localStorage.setItem('futuragro_consultor', 'Consultor Offline');
     </script>
 </body>
 </html>
