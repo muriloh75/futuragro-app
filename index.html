@@ -219,84 +219,115 @@
             measurementId: "G-TE7WG1M145"
         };
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-
-        // 1. LIMPA A URL DE PARÂMETROS ANTIGOS DO FIREBASE PARA EVITAR O ERRO "INVALID ACTION"
-        if (window.location.search.includes('apiKey=') || window.location.search.includes('mode=')) {
-            window.history.replaceState({}, document.title, window.location.pathname);
+        // CONTROLE DE LOADING
+        let sessaoVerificada = false;
+        function finalizarLoading() {
+            if (sessaoVerificada) return;
+            sessaoVerificada = true;
+            const loadingScreen = document.getElementById('loading-auth');
+            if (loadingScreen) loadingScreen.style.display = 'none';
         }
 
-        // 2. GARANTE A PERSISTÊNCIA LOCAL (MANTÉM LOGADO)
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-
-        // 3. MONITORAMENTO DE SESSÃO (AUTOMÁTICO)
-        auth.onAuthStateChanged(user => {
-            const loadingScreen = document.getElementById('loading-auth');
-            const loginScreen = document.getElementById('login-screen');
-            const appScreen = document.getElementById('app-screen');
-
-            loadingScreen.style.display = 'none';
-
-            if (user) {
-                loginScreen.style.display = 'none';
-                appScreen.style.display = 'flex';
-
-                document.getElementById('user-name').textContent = user.displayName || 'Consultor';
-                document.getElementById('user-email').textContent = user.email;
-                if (user.photoURL) {
-                    document.getElementById('user-photo').src = user.photoURL;
+        // TRAVA DE SEGURANÇA (3 Segundos)
+        setTimeout(() => {
+            if (!sessaoVerificada) {
+                console.warn("Firebase Auth demorou. Liberando tela.");
+                finalizarLoading();
+                const consultorSalvo = localStorage.getItem('futuragro_consultor');
+                if (consultorSalvo) {
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('app-screen').style.display = 'flex';
+                } else {
+                    document.getElementById('login-screen').style.display = 'flex';
+                    document.getElementById('app-screen').style.display = 'none';
                 }
-
-                localStorage.setItem('futuragro_consultor', user.displayName || user.email);
-                localStorage.setItem('tf_user_email', user.email);
-            } else {
-                loginScreen.style.display = 'flex';
-                appScreen.style.display = 'none';
             }
-        });
+        }, 3000);
 
-        // VARIÁVEL PARA EVITAR DUPLO CLIQUE (CONFLITO DE POPUP)
-        let loginEmAndamento = false;
+        try {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
 
-        // 4. FUNÇÃO DE LOGIN - FORÇANDO REDIRECT PARA EVITAR QUALQUER ERRO DE POPUP
-        window.fazerLoginGoogle = function() {
-            const btn = document.querySelector('.btn-google');
-            
-            // Trava contra duplo clique
-            if (btn.disabled) return; 
-            
-            btn.disabled = true;
-            btn.style.opacity = '0.6';
-            btn.style.cursor = 'wait';
-            btn.innerHTML = '🔄 Conectando ao Google...';
+            // MANTÉM LOGADO
+            auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-            const provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
-            
-            // AGORA SÓ EXISTE REDIRECT. O POPUP FOI BANIDO DO CÓDIGO.
-            auth.signInWithRedirect(provider).catch(error => {
-                console.error("Erro no redirecionamento:", error);
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
-                btn.innerHTML = 'Entrar com o Google';
-                alert("Erro crítico ao conectar: " + error.message);
+            // MONITORAMENTO DE SESSÃO
+            auth.onAuthStateChanged(user => {
+                finalizarLoading();
+
+                const loginScreen = document.getElementById('login-screen');
+                const appScreen = document.getElementById('app-screen');
+
+                if (user) {
+                    loginScreen.style.display = 'none';
+                    appScreen.style.display = 'flex';
+
+                    document.getElementById('user-name').textContent = user.displayName || 'Consultor';
+                    document.getElementById('user-email').textContent = user.email;
+                    if (user.photoURL) {
+                        document.getElementById('user-photo').src = user.photoURL;
+                    }
+
+                    localStorage.setItem('futuragro_consultor', user.displayName || user.email);
+                    localStorage.setItem('tf_user_email', user.email);
+                } else {
+                    loginScreen.style.display = 'flex';
+                    appScreen.style.display = 'none';
+                }
             });
-        };
 
-        // Captura a volta do redirecionamento
-        auth.getRedirectResult().catch(error => {
-            console.error("Erro ao voltar do Google:", error);
-        });
-        // 5. LOGOFF
-        function fazerLogout() {
-            if (confirm("Deseja realmente sair da sua conta?")) {
-                auth.signOut().then(() => {
-                    localStorage.removeItem('futuragro_consultor');
-                    localStorage.removeItem('tf_user_email');
+            // LOGIN 100% BLINDADO
+            window.fazerLoginGoogle = function() {
+                const btn = document.querySelector('.btn-google');
+                if (btn.disabled) return; 
+                
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor = 'wait';
+                btn.innerHTML = '🔄 Conectando...';
+
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                
+                // Exclusivo via Redirect
+                auth.signInWithRedirect(provider).catch(error => {
+                    console.error("Erro:", error);
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                    btn.innerHTML = 'Entrar com o Google';
+                    alert("Erro ao conectar: " + error.message);
                 });
-            }
+            };
+
+            // CAPTURA A VOLTA DO GOOGLE ANTES DE QUALQUER COISA
+            auth.getRedirectResult().then(result => {
+                // Se o login deu certo, o Firebase automaticamente limpa a URL de forma segura.
+                if (result && result.user) {
+                    console.log("Login por redirecionamento concluído!");
+                }
+            }).catch(error => {
+                // Ignora erro se o usuário desistiu de logar
+                if (error.code !== 'auth/redirect-cancelled-by-user') {
+                    console.error("Erro na volta do Google:", error);
+                }
+            });
+
+            // LOGOFF
+            window.fazerLogout = function() {
+                if (confirm("Deseja realmente sair da sua conta?")) {
+                    auth.signOut().then(() => {
+                        localStorage.removeItem('futuragro_consultor');
+                        localStorage.removeItem('tf_user_email');
+                        window.location.reload();
+                    });
+                }
+            };
+
+        } catch (err) {
+            console.error("Erro Crítico:", err);
+            finalizarLoading();
+            document.getElementById('login-screen').style.display = 'flex';
         }
     </script>
 </body>
