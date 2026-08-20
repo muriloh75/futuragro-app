@@ -231,7 +231,6 @@
         // TRAVA DE SEGURANÇA (3 Segundos)
         setTimeout(() => {
             if (!sessaoVerificada) {
-                console.warn("Firebase Auth demorou. Liberando tela.");
                 finalizarLoading();
                 const consultorSalvo = localStorage.getItem('futuragro_consultor');
                 if (consultorSalvo) {
@@ -276,42 +275,32 @@
                 }
             });
 
-            // LOGIN 100% BLINDADO
+            // LOGIN COM POPUP BLINDADO CONTRA DUPLO CLIQUE (Padrão para iOS PWA)
+            let loginEmAndamento = false;
+
             window.fazerLoginGoogle = function() {
-                const btn = document.querySelector('.btn-google');
-                if (btn.disabled) return; 
-                
-                btn.disabled = true;
-                btn.style.opacity = '0.6';
-                btn.style.cursor = 'wait';
-                btn.innerHTML = '🔄 Conectando...';
+                // Se o usuário clicar várias vezes desesperado, ignora os cliques extras
+                if (loginEmAndamento) return; 
+                loginEmAndamento = true;
 
                 const provider = new firebase.auth.GoogleAuthProvider();
                 provider.setCustomParameters({ prompt: 'select_account' });
                 
-                // Exclusivo via Redirect
-                auth.signInWithRedirect(provider).catch(error => {
-                    console.error("Erro:", error);
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
-                    btn.innerHTML = 'Entrar com o Google';
+                // Dispara o Popup imediatamente no clique (exigência da Apple)
+                auth.signInWithPopup(provider).then((result) => {
+                    loginEmAndamento = false; // Deu certo, libera!
+                }).catch(error => {
+                    loginEmAndamento = false; // Deu erro, libera o botão de novo
+                    
+                    // Se o erro for só porque o Firebase detectou duplo clique ou usuário fechou a janela, apenas ignora
+                    if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+                        console.warn("Pop-up cancelado ou duplo clique evitado.");
+                        return; 
+                    }
+                    
                     alert("Erro ao conectar: " + error.message);
                 });
             };
-
-            // CAPTURA A VOLTA DO GOOGLE ANTES DE QUALQUER COISA
-            auth.getRedirectResult().then(result => {
-                // Se o login deu certo, o Firebase automaticamente limpa a URL de forma segura.
-                if (result && result.user) {
-                    console.log("Login por redirecionamento concluído!");
-                }
-            }).catch(error => {
-                // Ignora erro se o usuário desistiu de logar
-                if (error.code !== 'auth/redirect-cancelled-by-user') {
-                    console.error("Erro na volta do Google:", error);
-                }
-            });
 
             // LOGOFF
             window.fazerLogout = function() {
