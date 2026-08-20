@@ -259,14 +259,13 @@
         // VARIÁVEL PARA EVITAR DUPLO CLIQUE (CONFLITO DE POPUP)
         let loginEmAndamento = false;
 
-        // 4. FUNÇÃO DE LOGIN OTIMIZADA PARA WEBAPP (PWA)
+        // 4. FUNÇÃO DE LOGIN - FORÇANDO REDIRECT PARA EVITAR QUALQUER ERRO DE POPUP
         window.fazerLoginGoogle = function() {
             const btn = document.querySelector('.btn-google');
             
-            // 1. Se o botão já foi clicado e está desativado, ignora novos cliques
+            // Trava contra duplo clique
             if (btn.disabled) return; 
             
-            // 2. Trava o botão e dá o feedback visual IMEDIATO para você não clicar de novo
             btn.disabled = true;
             btn.style.opacity = '0.6';
             btn.style.cursor = 'wait';
@@ -275,24 +274,20 @@
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
             
-            // 3. Em WebApps, NUNCA usamos Popup. Usamos sempre o Redirect (mesma janela).
+            // AGORA SÓ EXISTE REDIRECT. O POPUP FOI BANIDO DO CÓDIGO.
             auth.signInWithRedirect(provider).catch(error => {
-                // Se der algum erro muito grave, destrava o botão
                 console.error("Erro no redirecionamento:", error);
                 btn.disabled = false;
                 btn.style.opacity = '1';
                 btn.style.cursor = 'pointer';
                 btn.innerHTML = 'Entrar com o Google';
-                alert("Erro ao conectar: " + error.message);
+                alert("Erro crítico ao conectar: " + error.message);
             });
         };
 
-        // 4.1. CAPTURA O RESULTADO DO REDIRECIONAMENTO (Opcional, mas recomendado para PWAs)
+        // Captura a volta do redirecionamento
         auth.getRedirectResult().catch(error => {
-            console.error("Erro após voltar do Google:", error);
-            if (error.code !== 'auth/redirect-cancelled-by-user') {
-                alert("Falha ao concluir o login: " + error.message);
-            }
+            console.error("Erro ao voltar do Google:", error);
         });
         // 5. LOGOFF
         function fazerLogout() {
